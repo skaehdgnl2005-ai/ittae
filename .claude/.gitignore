@@ -1,0 +1,3 @@
+# 세션 요약 로그는 로컬 전용
+sessions/
+agent-memory-local/

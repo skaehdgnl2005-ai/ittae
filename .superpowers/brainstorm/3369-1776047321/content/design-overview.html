@@ -1,0 +1,105 @@
+<h2>Phase 1 전체 설계 개요</h2>
+<p class="subtitle">확정된 기술 결정 + 화면별 핵심 컴포넌트</p>
+
+<div class="section">
+  <div class="label">확정된 결정사항</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <span style="background:#F5F3FF;color:#7C3AED;padding:4px 10px;border-radius:6px;font-size:13px">실행 순서: TASKS.md 그대로 (A)</span>
+    <span style="background:#F5F3FF;color:#7C3AED;padding:4px 10px;border-radius:6px;font-size:13px">캘린더: 직접 구현 + date-fns</span>
+    <span style="background:#F5F3FF;color:#7C3AED;padding:4px 10px;border-radius:6px;font-size:13px">목업: useState 인터랙션</span>
+    <span style="background:#F5F3FF;color:#7C3AED;padding:4px 10px;border-radius:6px;font-size:13px">애니메이션: fade+stagger</span>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Phase 0 — 프로젝트 기반</h3>
+  <div class="mockup">
+    <div class="mockup-header">공통 기반 레이어</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#F4F4F5;padding:10px;border-radius:6px">
+          <strong>설정</strong><br>
+          tailwind.config (커스텀 팔레트)<br>
+          Pretendard + Instrument Serif<br>
+          shadcn/ui init
+        </div>
+        <div style="background:#F4F4F5;padding:10px;border-radius:6px">
+          <strong>공통 컴포넌트</strong><br>
+          Avatar (32/44/64px)<br>
+          Badge (투표중/확정/완료)<br>
+          Card + Button
+        </div>
+        <div style="background:#F4F4F5;padding:10px;border-radius:6px">
+          <strong>레이아웃</strong><br>
+          BottomTabNav (5탭)<br>
+          (main)/layout.tsx
+        </div>
+        <div style="background:#F4F4F5;padding:10px;border-radius:6px">
+          <strong>목업 데이터</strong><br>
+          src/lib/mock/index.ts<br>
+          users · groups · votes<br>
+          places · memories
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>5개 화면 컴포넌트 맵</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+
+    <div style="border:1px solid #E4E4E7;border-radius:8px;padding:12px">
+      <div style="color:#7C3AED;font-weight:600;margin-bottom:6px">① 홈 (캘린더)</div>
+      MonthlyCalendar<br>
+      └ InstrumentSerif 날짜<br>
+      └ 오늘 violet-600 원<br>
+      └ 이벤트 dot<br>
+      DayEventList (3px 컬러바)<br>
+      TodaySummaryCard<br>
+      빈 상태 + CTA
+    </div>
+
+    <div style="border:1px solid #E4E4E7;border-radius:8px;padding:12px">
+      <div style="color:#7C3AED;font-weight:600;margin-bottom:6px">② 친구/그룹</div>
+      FriendList<br>
+      └ 검색바 (violet-600 focus)<br>
+      GroupCard<br>
+      └ 상태배지 · 아바타그룹<br>
+      FilterChip (violet-50 선택)<br>
+      pending 배지
+    </div>
+
+    <div style="border:1px solid #E4E4E7;border-radius:8px;padding:12px">
+      <div style="color:#7C3AED;font-weight:600;margin-bottom:6px">③ 투표</div>
+      VoteMatrix (44px 셀)<br>
+      └ VoteCell ⭕△❌<br>
+      └ 최적행 violet-50 bg<br>
+      BestDateBanner<br>
+      StickyConfirmButton<br>
+      CommentSection
+    </div>
+
+    <div style="border:1px solid #E4E4E7;border-radius:8px;padding:12px">
+      <div style="color:#7C3AED;font-weight:600;margin-bottom:6px">④ 지도</div>
+      KakaoMapProvider<br>
+      MapView (마커 violet/gray)<br>
+      RadiusOverlay (violet-100)<br>
+      RadiusSlider (500m~5km)<br>
+      CategoryFilterBar<br>
+      PlaceCardCarousel
+    </div>
+
+    <div style="border:1px solid #E4E4E7;border-radius:8px;padding:12px;grid-column:1/-1">
+      <div style="color:#7C3AED;font-weight:600;margin-bottom:6px">⑤ 기록</div>
+      TimelineView (gray-200 수직선) · MemoryCard (12px radius) · StatsSummary (Instrument Serif) · MapMemoryView · 날짜/월 필터
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">완료 기준</div>
+  <p style="font-size:13px">각 화면 → <code>/design-check</code> 통과 → 다음 화면. 마지막에 <code>pnpm typecheck && pnpm lint</code> 클린.</p>
+</div>
+
+<p style="color: var(--muted); font-size:13px;margin-top:16px">이 설계대로 진행해도 될까요? 터미널에서 승인해주세요.</p>

@@ -1,0 +1,74 @@
+<h2>Phase 1 실행 전략 선택</h2>
+<p class="subtitle">TASKS.md 기준 Phase 1은 초기화 + 5개 화면입니다. 어떤 순서로 진행할까요?</p>
+
+<div class="section">
+  <div class="label">현재 상태</div>
+  <p>구현 파일 없음 · harness + 문서만 존재 · Next.js 프로젝트 생성부터 시작</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>데모 플로우 우선</h3>
+      <p>MVP 핵심 경로를 먼저 완성</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>진행 순서</h4><ul>
+          <li>0. 초기화 + 공통 기반</li>
+          <li>1. 홈 (캘린더)</li>
+          <li>2. 친구/그룹</li>
+          <li>3. 투표 (가장 중요)</li>
+          <li>4. 지도</li>
+          <li>5. 기록</li>
+        </ul></div>
+        <div class="cons"><h4>특징</h4><ul>
+          <li>TASKS.md 순서 그대로</li>
+          <li>각 화면 완료 후 /design-check</li>
+          <li>선형적, 예측 가능</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>컴포넌트 → 화면 병렬</h3>
+      <p>공통 기반 완성 후 화면 병렬 구현</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>진행 순서</h4><ul>
+          <li>0. 초기화 + 모든 공통 컴포넌트</li>
+          <li>1~5. 5개 화면을 서브에이전트 병렬</li>
+        </ul></div>
+        <div class="cons"><h4>특징</h4><ul>
+          <li>전체 속도 빠름</li>
+          <li>컴포넌트 재사용성 극대화</li>
+          <li>Phase 0 완료 전까지 화면 없음</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>투표 화면 우선</h3>
+      <p>핵심 차별화 기능 먼저, 나머지는 wrapper</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>진행 순서</h4><ul>
+          <li>0. 초기화</li>
+          <li>3. 투표 화면 (가장 먼저)</li>
+          <li>1. 홈</li>
+          <li>2. 친구/그룹</li>
+          <li>4. 지도</li>
+          <li>5. 기록</li>
+        </ul></div>
+        <div class="cons"><h4>특징</h4><ul>
+          <li>심사위원 핵심 데모 포인트 먼저</li>
+          <li>나머지는 투표를 감싸는 컨텍스트</li>
+          <li>리스크 조기 해소</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
