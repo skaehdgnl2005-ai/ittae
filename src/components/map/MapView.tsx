@@ -10,14 +10,14 @@ type MapViewProps = {
   center?: { lat: number; lng: number };
 };
 
-export function MapView({ places, selectedPlaceId }: MapViewProps) {
+export function MapView({ places, selectedPlaceId, center }: MapViewProps) {
   const { isLoaded } = useKakaoMap();
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoaded || !mapRef.current) return;
     // Phase 2: 실제 Kakao Maps 렌더링
-  }, [isLoaded, places, selectedPlaceId]);
+  }, [isLoaded, places, selectedPlaceId, center]);
 
   return (
     <div ref={mapRef} className="w-full h-full relative bg-gray-100">

@@ -19,7 +19,7 @@ export function PlaceCardCarousel({ places, selectedId, onSelect }: PlaceCardCar
           className={cn(
             "shrink-0 w-48 bg-white rounded-xl border p-3 text-left transition-all",
             selectedId === place.id
-              ? "border-violet-600 shadow-[0_0_0_1px_#7C3AED]"
+              ? "border-violet-600 ring-1 ring-violet-600"
               : "border-gray-200"
           )}
         >
