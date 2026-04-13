@@ -56,6 +56,12 @@ create policy "places_select_all" on places
 create policy "places_insert_auth" on places
   for insert with check (auth.role() = 'authenticated');
 
+create policy "places_update_auth" on places
+  for update using (auth.role() = 'authenticated');
+
+create policy "places_delete_auth" on places
+  for delete using (auth.role() = 'authenticated');
+
 -- ============================================================
 -- 3. friendships
 -- ============================================================
@@ -110,7 +116,7 @@ create policy "groups_update_host" on groups
 -- ============================================================
 create table group_members (
   group_id uuid references groups(id) on delete cascade,
-  user_id uuid references users(id),
+  user_id uuid references users(id) on delete cascade,
   joined_at timestamptz default now(),
   primary key (group_id, user_id)
 );
@@ -204,6 +210,16 @@ create policy "memories_select_member" on memories
 
 create policy "memories_insert_member" on memories
   for insert with check (
+    group_id in (select group_id from group_members where user_id = auth.uid())
+  );
+
+create policy "memories_update_member" on memories
+  for update using (
+    group_id in (select group_id from group_members where user_id = auth.uid())
+  );
+
+create policy "memories_delete_member" on memories
+  for delete using (
     group_id in (select group_id from group_members where user_id = auth.uid())
   );
 
