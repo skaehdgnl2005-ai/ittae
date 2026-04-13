@@ -1,5 +1,5 @@
 import type { Database } from "@/types/supabase";
-import type { Schedule, Group, User } from "@/types";
+import type { Schedule, Group, User, VoteSession, Vote } from "@/types";
 
 export function mapSchedule(
   row: Database["public"]["Tables"]["schedules"]["Row"]
@@ -39,5 +39,29 @@ export function mapUser(
     nickname: row.nickname,
     profileImageUrl: row.profile_image_url,
     statusMessage: row.status_message,
+  };
+}
+
+export function mapVoteSession(
+  row: Database["public"]["Tables"]["vote_sessions"]["Row"]
+): VoteSession {
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    candidateDates: row.candidate_dates,
+    deadline: row.deadline ?? "",
+  };
+}
+
+export function mapVote(
+  row: Database["public"]["Tables"]["votes"]["Row"]
+): Vote {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    userId: row.user_id,
+    date: row.date,
+    choice: row.choice,
+    comment: row.comment,
   };
 }

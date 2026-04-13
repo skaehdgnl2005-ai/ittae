@@ -1,76 +1,93 @@
-"use client";
-import { useState } from "react";
-import { VoteMatrix } from "@/components/vote/VoteMatrix";
-import { BestDateBanner } from "@/components/vote/BestDateBanner";
-import { StickyConfirmButton } from "@/components/vote/StickyConfirmButton";
-import { CommentSection } from "@/components/vote/CommentSection";
-import { getBestDate, isAllVoted } from "@/lib/vote";
-import { mockGroups, mockVoteSession, mockVotes, mockCurrentUserId } from "@/lib/mock";
-import type { Vote, VoteChoice } from "@/types";
-import { ChevronLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { createServerClient } from "@/lib/supabase/server";
+import { mapGroup, mapUser, mapVoteSession, mapVote } from "@/lib/mappers";
+import type { Group, VoteSession, Vote, User } from "@/types";
+import { GroupDetailClient } from "./GroupDetailClient";
 
-export default function GroupDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const group = mockGroups.find((g) => g.id === params.id) ?? mockGroups[0];
-  const [votes, setVotes] = useState<Vote[]>(mockVotes);
+export default async function GroupDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = await createServerClient();
 
-  const handleVote = (date: string, choice: VoteChoice) => {
-    setVotes((prev) => {
-      const existing = prev.findIndex((v) => v.userId === mockCurrentUserId && v.date === date);
-      if (existing >= 0) {
-        return prev.map((v, i) => (i === existing ? { ...v, choice } : v));
-      }
-      return [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          sessionId: mockVoteSession.id,
-          userId: mockCurrentUserId,
-          date,
-          choice,
-          comment: null,
-        },
-      ];
-    });
-  };
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) redirect("/login");
 
-  const bestDate = getBestDate(mockVoteSession, votes);
-  const memberIds = group.members.map((m) => m.id);
-  const allVoted = isAllVoted(mockVoteSession, votes, memberIds);
-  const isHost = group.hostId === mockCurrentUserId;
+  // Verify membership
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("group_id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership) notFound();
+
+  // Fetch group
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!groupRow) notFound();
+
+  // Fetch members
+  const { data: allMemberships } = await supabase
+    .from("group_members")
+    .select("user_id")
+    .eq("group_id", id);
+
+  const memberIds = (allMemberships ?? []).map((m) => m.user_id);
+  const { data: usersData } = await supabase
+    .from("users")
+    .select("*")
+    .in("id", memberIds);
+
+  const members: User[] = (usersData ?? []).map(mapUser);
+  const group: Group = { ...mapGroup(groupRow), members };
+
+  // Fetch the most recent vote session for this group
+  const { data: sessionRow } = await supabase
+    .from("vote_sessions")
+    .select("*")
+    .eq("group_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!sessionRow) {
+    return (
+      <GroupDetailClient
+        group={group}
+        voteSession={null}
+        initialVotes={[]}
+        currentUserId={user.id}
+      />
+    );
+  }
+
+  const voteSession: VoteSession = mapVoteSession(sessionRow);
+
+  // Fetch initial votes
+  const { data: votesData } = await supabase
+    .from("votes")
+    .select("*")
+    .eq("session_id", sessionRow.id);
+
+  const initialVotes: Vote[] = (votesData ?? []).map(mapVote);
 
   return (
-    <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
-      {/* 헤더 */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
-        <button onClick={() => router.back()} aria-label="뒤로" className="min-h-11 min-w-11 flex items-center justify-center -ml-2">
-          <ChevronLeft size={24} className="text-gray-700 dark:text-gray-300" strokeWidth={1.5} />
-        </button>
-        <div>
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{group.name}</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{group.members.length}명 참여</p>
-        </div>
-      </div>
-
-      <div className="px-5 mt-4">
-        <VoteMatrix
-          session={mockVoteSession}
-          votes={votes}
-          members={group.members}
-          currentUserId={mockCurrentUserId}
-          onVote={handleVote}
-        />
-      </div>
-
-      <BestDateBanner date={bestDate} />
-      <CommentSection votes={votes} members={group.members} />
-
-      <StickyConfirmButton
-        allVoted={allVoted}
-        isHost={isHost}
-        onConfirm={() => alert("일정이 확정됩니다!")}
-      />
-    </div>
+    <GroupDetailClient
+      group={group}
+      voteSession={voteSession}
+      initialVotes={initialVotes}
+      currentUserId={user.id}
+    />
   );
 }
