@@ -10,7 +10,7 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const hasEventOnSelected = mockSchedules.some(
-    (s) => s.date === selectedDate.toISOString().slice(0, 10)
+    (s) => new Date(s.date).toDateString() === selectedDate.toDateString()
   );
 
   return (

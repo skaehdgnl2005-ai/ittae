@@ -1,3 +1,4 @@
+"use client";
 import { formatDateShort, formatTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { AvatarGroup } from "@/components/ui/Avatar";
@@ -30,8 +31,10 @@ export function DayEventList({ date, schedules, groups }: DayEventListProps) {
       </h3>
       {daySchedules.map((schedule) => {
         const isGroup = schedule.type === "group";
+        // TODO: Schedule에 groupId가 없어 confirmedDate로 매칭 중 (MVP 한계).
+        // 추후 Schedule 타입에 groupId 추가 후 정확한 매칭으로 개선 필요.
         const relatedGroup = isGroup
-          ? groups.find((g) => g.confirmedDate === schedule.date)
+          ? groups.find((g) => g.confirmedDate === schedule.date) ?? null
           : null;
 
         return (
