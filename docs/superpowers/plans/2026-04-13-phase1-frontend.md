@@ -1017,7 +1017,7 @@ git commit -m "feat: Avatar, Badge, Card, Button 공통 컴포넌트"
 - Create: `src/app/(main)/layout.tsx`
 - Modify: `src/app/page.tsx` (홈으로 리다이렉트)
 
-- [ ] **Step 1: BottomTabNav 구현**
+- [x] **Step 1: BottomTabNav 구현**
 
 ```tsx
 // src/components/layout/BottomTabNav.tsx
@@ -1069,7 +1069,7 @@ export function BottomTabNav() {
 }
 ```
 
-- [ ] **Step 2: (main) 레이아웃**
+- [x] **Step 2: (main) 레이아웃**
 
 ```tsx
 // src/app/(main)/layout.tsx
@@ -1085,7 +1085,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-- [ ] **Step 3: 루트 페이지 리다이렉트**
+- [x] **Step 3: 루트 페이지 리다이렉트**
 
 ```tsx
 // src/app/page.tsx
@@ -1096,7 +1096,7 @@ export default function RootPage() {
 }
 ```
 
-- [ ] **Step 4: 각 탭 placeholder 페이지 생성**
+- [x] **Step 4: 각 탭 placeholder 페이지 생성**
 
 ```tsx
 // src/app/(main)/home/page.tsx
@@ -1115,11 +1115,11 @@ export default function MapPage() { return <div className="p-5">지도</div>; }
 export default function HistoryPage() { return <div className="p-5">기록</div>; }
 ```
 
-- [ ] **Step 5: 브라우저 확인**
+- [x] **Step 5: 브라우저 확인**
 
 `http://localhost:3000` → `/home` 리다이렉트, 하단 탭 표시, 탭 전환 정상 동작.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/app/ src/components/layout/

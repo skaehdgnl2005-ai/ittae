@@ -9,16 +9,27 @@
 | 항목 | 상태 |
 |------|------|
 | **현재 Phase** | Phase 2 — 백엔드 연결 진행 중 |
-| **Next Action** | Task 6 (기록 백엔드) — `feature/phase2-backend` 워크트리에서 시작 |
+| **Next Action** | Task 2 (홈 백엔드) 부터 `superpowers:subagent-driven-development` 스킬로 계속 |
 | **작업 브랜치** | `feature/phase2-backend` (`.worktrees/phase2/` 워크트리) |
 | **Phase 1** | ✅ 완료 — 5개 화면 모두 목업 데이터 기반 구현 완료 |
 | **Phase 2 Task 0** | ✅ 완료 — Supabase 설정, DB 타입, 마이그레이션, HANDOFF.md |
 | **Phase 2 Task 1** | ✅ 완료 — Auth, 로그인 UI, 프로필 설정, middleware |
-| **Phase 2 Task 2** | ✅ 완료 — schedules API, 홈 페이지 실데이터 |
-| **Phase 2 Task 3** | ✅ 완료 — friends/groups API, 친구 페이지 실데이터 |
-| **Phase 2 Task 4** | ✅ 완료 — vote-sessions/votes API, Realtime 구독, 투표 페이지 실데이터 |
-| **Phase 2 Task 5** | ✅ 완료 — Kakao Local API, places 저장, KakaoTalk 공유, 지도 페이지 실데이터 |
-| **Phase 2 Task 6** | ⏳ 대기 중 |
+| **Phase 2 Task 2~6** | ⏳ 대기 중 |
+| **인수인계 문서** | `docs/HANDOFF.md` ✅ |
+
+### Phase 2 워크트리 정보
+- **경로**: `.worktrees/phase2/` (gitignore됨)
+- **브랜치**: `feature/phase2-backend`
+- **완료 커밋**: `a6ad052e` (Task 1 인증 완성)
+- **새 파일들**: `src/lib/supabase/server.ts`, `src/lib/supabase/client.ts`, `src/types/supabase.ts`, `supabase/migrations/001_initial_schema.sql`, `docs/HANDOFF.md`
+
+### Phase 2 시작 전 필요한 환경 설정 (.env.local)
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+KAKAO_REST_API_KEY=your-kakao-rest-key
+NEXT_PUBLIC_KAKAO_JS_KEY=your-kakao-js-key
+```
 
 ### 확정된 기술 결정 (변경 불가)
 - 실행 순서: TASKS.md 그대로 (Phase 0→1→2→3→4→5)
@@ -133,43 +144,45 @@ Phase 1 완료 후, Phase 2 진입 전에 `docs/HANDOFF.md`를 생성한다.
 
 ### 0. Supabase 설정 ✅ 완료
 
-- [x] Supabase 프로젝트 생성, `.env.local` 환경 변수 설정 ← **사람이 직접 설정 필요**
+- [ ] Supabase 프로젝트 생성, `.env.local` 환경 변수 설정 ← **사람이 직접 설정 필요**
 - [x] `supabase/migrations/001_initial_schema.sql` — DATA_MODEL.md 전체 스키마 적용
 - [x] RLS 정책 전체 적용 (`rls-check.sh` 포함)
-- [x] `src/types/supabase.ts` — DB 타입 수동 작성
+- [x] `src/types/supabase.ts` — DATA_MODEL.md 기반 수동 작성 (`pnpm db:types`는 실제 Supabase 연결 후 재생성)
 - [x] `src/lib/supabase/server.ts` + `src/lib/supabase/client.ts` 헬퍼 구현
 
-### 1. 인증 ✅ 완료
+### 1. 인증 ✅ 완료 — 커밋 `a6ad052e`
 
 - [x] Supabase Auth — Google + Kakao 소셜 로그인
 - [x] 프로필 설정 화면 (닉네임, 프로필 이미지, 상태 메시지)
 - [x] `middleware.ts` — 비인증 사용자 리다이렉트
+- [ ] 목업 users → `users` 테이블 교체 (각 화면 Task에서 처리)
 
-### 2. 홈 백엔드 연결 ✅ 완료
+### 2. 홈 백엔드 연결
 
-- [x] `schedules` CRUD Route Handler
-- [x] `groups` 확정 일정 자동 동기화 (confirmed_date 기반)
-- [x] 목업 → `schedules` + `groups` 실 데이터 교체
+- [ ] `schedules` CRUD Route Handler
+- [ ] `groups` 확정 일정 자동 동기화 (confirmed_date 기반)
+- [ ] 목업 → `schedules` + `groups` 실 데이터 교체
 
-### 3. 친구 / 그룹 백엔드 연결 ✅ 완료
+### 3. 친구 / 그룹 백엔드 연결
 
-- [x] `friendships` 친구 요청·수락 API
-- [x] `groups` + `group_members` 그룹 생성·관리
-- [x] 목업 → 실 데이터 교체
+- [ ] `friendships` 친구 요청·수락 API
+- [ ] `groups` + `group_members` 그룹 생성·관리
+- [ ] 목업 → 실 데이터 교체
 
-### 4. 투표 백엔드 연결 ✅ 완료 — 커밋 `bef73ad3`
+### 4. 투표 백엔드 연결
 
-- [x] `vote_sessions` + `votes` CRUD
-- [x] Supabase Realtime 구독 (`votes:${sessionId}` 채널)
-- [x] 호스트 확정 → `groups.status = 'confirmed'` 업데이트
-- [x] 목업 → 실 데이터 교체
+- [ ] `vote_sessions` + `votes` CRUD
+- [ ] Supabase Realtime 구독 (`votes:${sessionId}` 채널)
+- [ ] 투표 집계 로직 (최적 날짜 자동 추천)
+- [ ] 호스트 확정 → `groups.status = 'confirmed'` 업데이트
+- [ ] 목업 → 실 데이터 교체
 
-### 5. 지도 백엔드 연결 ✅ 완료 — 커밋 `4eeddf66`
+### 5. 지도 백엔드 연결
 
-- [x] Kakao Local API Route Handler (`/api/places/search`) — 키워드·카테고리 검색
-- [x] `places` 테이블 저장 (선택한 장소)
-- [x] KakaoTalk Share API 연동
-- [x] 목업 → 실 Kakao API + `places` 테이블 교체
+- [ ] Kakao Local API Route Handler (`/api/places/search`) — 키워드·카테고리 검색
+- [ ] `places` 테이블 저장 (선택한 장소)
+- [ ] KakaoTalk Share API 연동
+- [ ] 목업 → 실 Kakao API + `places` 테이블 교체
 
 ### 6. 기록 백엔드 연결
 
