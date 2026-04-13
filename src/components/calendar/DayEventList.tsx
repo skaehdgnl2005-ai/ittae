@@ -1,5 +1,5 @@
 "use client";
-import { formatDateShort, formatTime } from "@/lib/date";
+import { formatDateShort, formatTime, isSameDay } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { AvatarGroup } from "@/components/ui/Avatar";
 import type { Schedule, Group } from "@/types";
@@ -11,10 +11,7 @@ type DayEventListProps = {
 };
 
 export function DayEventList({ date, schedules, groups }: DayEventListProps) {
-  const daySchedules = schedules.filter((s) => {
-    const sd = new Date(s.date);
-    return sd.toDateString() === date.toDateString();
-  });
+  const daySchedules = schedules.filter((s) => isSameDay(new Date(s.date), date));
 
   if (daySchedules.length === 0) {
     return (

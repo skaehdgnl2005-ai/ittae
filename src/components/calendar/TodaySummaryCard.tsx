@@ -1,4 +1,4 @@
-import { formatDateShort } from "@/lib/date";
+import { formatDateShort, isSameDay } from "@/lib/date";
 import type { Schedule } from "@/types";
 
 type TodaySummaryCardProps = {
@@ -7,10 +7,7 @@ type TodaySummaryCardProps = {
 
 export function TodaySummaryCard({ schedules }: TodaySummaryCardProps) {
   const today = new Date();
-  const todaySchedules = schedules.filter((s) => {
-    const sd = new Date(s.date);
-    return sd.toDateString() === today.toDateString();
-  });
+  const todaySchedules = schedules.filter((s) => isSameDay(new Date(s.date), today));
   const next = todaySchedules[0];
 
   return (
