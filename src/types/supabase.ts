@@ -37,6 +37,7 @@ export type Database = {
           status_message?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       friendships: {
         Row: {
@@ -60,6 +61,7 @@ export type Database = {
           status?: "pending" | "accepted";
           created_at?: string;
         };
+        Relationships: [];
       };
       groups: {
         Row: {
@@ -89,6 +91,7 @@ export type Database = {
           place_id?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       group_members: {
         Row: {
@@ -106,6 +109,7 @@ export type Database = {
           user_id?: string;
           joined_at?: string;
         };
+        Relationships: [];
       };
       vote_sessions: {
         Row: {
@@ -129,6 +133,7 @@ export type Database = {
           deadline?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       votes: {
         Row: {
@@ -158,6 +163,7 @@ export type Database = {
           comment?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       places: {
         Row: {
@@ -193,6 +199,7 @@ export type Database = {
           image_url?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       memories: {
         Row: {
@@ -222,6 +229,7 @@ export type Database = {
           note?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       schedules: {
         Row: {
@@ -254,8 +262,11 @@ export type Database = {
           memo?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
     Enums: Record<string, never>;
   };
 };
