@@ -60,6 +60,9 @@ export const mockVotes: Vote[] = [
   { id: "v7", sessionId: "vs1", userId: "u3", date: "2026-04-25", choice: "available", comment: null },
   { id: "v8", sessionId: "vs1", userId: "u3", date: "2026-04-26", choice: "unavailable", comment: "선약 있어요" },
   { id: "v9", sessionId: "vs1", userId: "u3", date: "2026-04-27", choice: "unavailable", comment: null },
+  { id: "v10", sessionId: "vs1", userId: "u5", date: "2026-04-25", choice: "available", comment: null },
+  { id: "v11", sessionId: "vs1", userId: "u5", date: "2026-04-26", choice: "available", comment: null },
+  { id: "v12", sessionId: "vs1", userId: "u5", date: "2026-04-27", choice: "maybe", comment: "이날 조금 애매해요" },
 ];
 
 export const mockPlaces: Place[] = [
@@ -81,7 +84,7 @@ export const mockMemories: Memory[] = [
   {
     id: "m2",
     groupId: "g2",
-    date: "2026-02-14",
+    date: "2026-04-20",
     placeId: "p1",
     photos: [],
     note: null,
