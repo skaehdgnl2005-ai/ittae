@@ -168,6 +168,7 @@ export type Database = {
       places: {
         Row: {
           id: string;
+          kakao_place_id: string | null;
           name: string;
           address: string | null;
           latitude: number | null;
@@ -179,6 +180,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          kakao_place_id?: string | null;
           name: string;
           address?: string | null;
           latitude?: number | null;
@@ -190,6 +192,7 @@ export type Database = {
         };
         Update: {
           id?: string;
+          kakao_place_id?: string | null;
           name?: string;
           address?: string | null;
           latitude?: number | null;

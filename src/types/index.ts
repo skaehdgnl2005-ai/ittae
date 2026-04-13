@@ -47,6 +47,18 @@ export type Place = {
   imageUrl: string | null;
 };
 
+export type KakaoPlace = {
+  kakaoPlaceId: string;
+  name: string;
+  address: string;
+  roadAddress: string;
+  latitude: number;
+  longitude: number;
+  distance: number;
+  categoryCode: string;
+  phone: string;
+};
+
 export type Memory = {
   id: string;
   groupId: string;
