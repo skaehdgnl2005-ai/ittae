@@ -1,5 +1,5 @@
 import type { Database } from "@/types/supabase";
-import type { Schedule, Group, User, VoteSession, Vote } from "@/types";
+import type { Schedule, Group, User, VoteSession, Vote, Memory } from "@/types";
 
 export function mapSchedule(
   row: Database["public"]["Tables"]["schedules"]["Row"]
@@ -63,5 +63,19 @@ export function mapVote(
     date: row.date,
     choice: row.choice,
     comment: row.comment,
+  };
+}
+
+export function mapMemory(
+  row: Database["public"]["Tables"]["memories"]["Row"]
+): Memory {
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    date: row.date,
+    placeId: row.place_id ?? "",
+    photos: row.photos,
+    note: row.note,
+    participants: [],
   };
 }
