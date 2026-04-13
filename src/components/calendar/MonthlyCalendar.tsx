@@ -25,17 +25,17 @@ export function MonthlyCalendar({ schedules, selectedDate, onSelectDate }: Month
         <button
           aria-label="이전 달"
           onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          className="p-2 -ml-2 text-gray-500 active:text-gray-800"
+          className="p-2 -ml-2 min-h-11 min-w-11 flex items-center justify-center text-gray-500 dark:text-gray-400 active:text-gray-800 dark:active:text-gray-100"
         >
           <ChevronLeft size={20} strokeWidth={1.5} />
         </button>
-        <span className="text-lg font-semibold text-gray-800">
+        <span className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {formatMonthYear(currentMonth)}
         </span>
         <button
           aria-label="다음 달"
           onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          className="p-2 -mr-2 text-gray-500 active:text-gray-800"
+          className="p-2 -mr-2 min-h-11 min-w-11 flex items-center justify-center text-gray-500 dark:text-gray-400 active:text-gray-800 dark:active:text-gray-100"
         >
           <ChevronRight size={20} strokeWidth={1.5} />
         </button>
@@ -44,7 +44,7 @@ export function MonthlyCalendar({ schedules, selectedDate, onSelectDate }: Month
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 mb-2">
         {WEEKDAYS.map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">
+          <div key={d} className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 py-1">
             {d}
           </div>
         ))}
@@ -69,8 +69,8 @@ export function MonthlyCalendar({ schedules, selectedDate, onSelectDate }: Month
                 className={cn(
                   "font-serif w-8 h-8 flex items-center justify-center text-sm rounded-full transition-colors",
                   isSelected && "bg-violet-600 text-white",
-                  isToday && !isSelected && "bg-violet-100 text-violet-700 font-semibold",
-                  !isToday && !isSelected && "text-gray-700"
+                  isToday && !isSelected && "bg-violet-600 text-white font-semibold",
+                  !isToday && !isSelected && "text-gray-700 dark:text-gray-300"
                 )}
               >
                 {day.getDate()}
