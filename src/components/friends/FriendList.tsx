@@ -1,0 +1,69 @@
+// src/components/friends/FriendList.tsx
+"use client";
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
+import { cn } from "@/lib/utils";
+import type { User } from "@/types";
+
+type FriendListProps = {
+  users: User[];
+};
+
+export function FriendList({ users }: FriendListProps) {
+  const [query, setQuery] = useState("");
+
+  function handleQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value);
+  }
+
+  const filtered = users.filter((u) =>
+    u.nickname.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div>
+      {/* 검색바 */}
+      <div className="px-5 py-3">
+        <div className="relative">
+          <Search
+            size={16}
+            aria-hidden="true"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            strokeWidth={1.5}
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={handleQueryChange}
+            aria-label="친구 검색"
+            placeholder="친구 검색"
+            className={cn(
+              "w-full pl-9 pr-3 py-2.5 bg-gray-100 rounded-xl text-sm",
+              "outline-none focus:ring-2 focus:ring-violet-600 focus:bg-white transition-all",
+              "dark:bg-gray-800 dark:text-gray-100 dark:focus:bg-gray-900"
+            )}
+          />
+        </div>
+      </div>
+
+      {/* 친구 목록 */}
+      <div className="px-5 space-y-1">
+        {filtered.map((user) => (
+          <div key={user.id} className="flex items-center gap-3 min-h-11 py-2">
+            <Avatar nickname={user.nickname} profileImageUrl={user.profileImageUrl} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{user.nickname}</p>
+              {user.statusMessage && (
+                <p className="text-xs text-gray-400 truncate">{user.statusMessage}</p>
+              )}
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-sm text-gray-400 py-4 text-center">검색 결과 없음</p>
+        )}
+      </div>
+    </div>
+  );
+}
