@@ -66,6 +66,10 @@ describe("getBestDate", () => {
   it("available 투표가 가장 많은 날짜를 반환한다", () => {
     expect(getBestDate(session, votes)).toBe("2026-04-25");
   });
+  it("available 투표가 없으면 null을 반환한다", () => {
+    const noAvailVotes: Vote[] = votes.map((v) => ({ ...v, choice: "unavailable" as const }));
+    expect(getBestDate(session, noAvailVotes)).toBeNull();
+  });
 });
 
 describe("getVoteSummary", () => {

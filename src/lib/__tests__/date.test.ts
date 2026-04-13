@@ -4,6 +4,7 @@ import {
   isSameDay,
   formatMonthYear,
   formatDateShort,
+  formatTime,
 } from "@/lib/date";
 
 describe("getCalendarDays", () => {
@@ -43,5 +44,20 @@ describe("formatMonthYear", () => {
 describe("formatDateShort", () => {
   it("4월 13일 형식으로 반환한다", () => {
     expect(formatDateShort(new Date(2026, 3, 13))).toBe("4월 13일");
+  });
+});
+
+describe("formatTime", () => {
+  it("오전 시간을 변환한다", () => {
+    expect(formatTime("09:05")).toBe("오전 9:05");
+  });
+  it("자정은 오전 12:00", () => {
+    expect(formatTime("00:00")).toBe("오전 12:00");
+  });
+  it("정오는 오후 12:00", () => {
+    expect(formatTime("12:00")).toBe("오후 12:00");
+  });
+  it("오후 시간을 변환한다", () => {
+    expect(formatTime("14:00")).toBe("오후 2:00");
   });
 });

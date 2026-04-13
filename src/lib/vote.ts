@@ -24,7 +24,7 @@ export function getBestDate(
 ): string | null {
   const summary = getVoteSummary(session, votes);
   let best: string | null = null;
-  let max = -1;
+  let max = 0;
   session.candidateDates.forEach((date) => {
     if (summary[date].available > max) {
       max = summary[date].available;
