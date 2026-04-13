@@ -1,5 +1,5 @@
 import type { Database } from "@/types/supabase";
-import type { Schedule, Group } from "@/types";
+import type { Schedule, Group, User } from "@/types";
 
 export function mapSchedule(
   row: Database["public"]["Tables"]["schedules"]["Row"]
@@ -28,5 +28,16 @@ export function mapGroup(
     placeId: row.place_id,
     createdAt: row.created_at,
     members: [],
+  };
+}
+
+export function mapUser(
+  row: Database["public"]["Tables"]["users"]["Row"]
+): User {
+  return {
+    id: row.id,
+    nickname: row.nickname,
+    profileImageUrl: row.profile_image_url,
+    statusMessage: row.status_message,
   };
 }

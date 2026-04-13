@@ -1,80 +1,93 @@
-// src/app/(main)/friends/page.tsx
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { FilterChip } from "@/components/friends/FilterChip";
-import { GroupCard } from "@/components/friends/GroupCard";
-import { FriendList } from "@/components/friends/FriendList";
-import { mockUsers, mockGroups, mockCurrentUserId } from "@/lib/mock";
-import { cn } from "@/lib/utils";
-import type { GroupStatus } from "@/types";
+import { createServerClient } from "@/lib/supabase/server";
+import { mapUser, mapGroup } from "@/lib/mappers";
+import { FriendsView } from "@/components/friends/FriendsView";
+import type { User, Group } from "@/types";
 
-type Tab = "friends" | "groups";
-type FilterValue = "all" | GroupStatus;
+export default async function FriendsPage() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-const FILTERS: { value: FilterValue; label: string }[] = [
-  { value: "all",       label: "전체" },
-  { value: "voting",    label: "투표 중" },
-  { value: "confirmed", label: "확정" },
-  { value: "completed", label: "완료" },
-];
+  if (!user) {
+    return <FriendsView friends={[]} groups={[]} />;
+  }
 
-export default function FriendsPage() {
-  const router = useRouter();
-  const [tab, setTab] = useState<Tab>("friends");
-  const [filter, setFilter] = useState<FilterValue>("all");
+  // Fetch accepted friends
+  const [{ data: sent }, { data: received }] = await Promise.all([
+    supabase
+      .from("friendships")
+      .select("receiver_id")
+      .eq("requester_id", user.id)
+      .eq("status", "accepted"),
+    supabase
+      .from("friendships")
+      .select("requester_id")
+      .eq("receiver_id", user.id)
+      .eq("status", "accepted"),
+  ]);
 
-  const friends = mockUsers.filter((u) => u.id !== mockCurrentUserId);
-  const groups = filter === "all"
-    ? mockGroups
-    : mockGroups.filter((g) => g.status === filter);
+  const friendIds = [
+    ...(sent ?? []).map((f) => f.receiver_id),
+    ...(received ?? []).map((f) => f.requester_id),
+  ];
 
-  return (
-    <div className="bg-gray-50 min-h-dvh dark:bg-gray-950">
-      {/* 탭 */}
-      <div role="tablist" className="flex bg-white border-b border-gray-200 px-5 dark:bg-gray-900 dark:border-gray-800">
-        {(["friends", "groups"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "flex-1 py-3 text-sm font-medium border-b-2 transition-colors",
-              tab === t
-                ? "border-violet-600 text-violet-600 dark:text-violet-400"
-                : "border-transparent text-gray-400 dark:text-gray-500"
-            )}
-          >
-            {t === "friends" ? "친구" : "모임"}
-          </button>
-        ))}
-      </div>
+  const friendsPromise = friendIds.length > 0
+    ? supabase.from("users").select("*").in("id", friendIds)
+    : Promise.resolve({ data: [] as { id: string; email: string; nickname: string; profile_image_url: string | null; status_message: string | null; created_at: string }[] });
 
-      {tab === "friends" ? (
-        <FriendList users={friends} />
-      ) : (
-        <div>
-          {/* 필터 칩 */}
-          <div className="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
-            {FILTERS.map((f) => (
-              <FilterChip
-                key={f.value}
-                value={f.value}
-                label={f.label}
-                selected={filter === f.value}
-                onSelect={setFilter}
-              />
-            ))}
-          </div>
-          {/* 그룹 목록 */}
-          <div className="px-5 space-y-3 pb-6">
-            {groups.map((g) => (
-              <GroupCard key={g.id} group={g} onClick={() => router.push(`/group/${g.id}`)} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Fetch groups where user is a member
+  const membershipsPromise = supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", user.id);
+
+  const [{ data: usersData }, { data: myMemberships }] = await Promise.all([
+    friendsPromise,
+    membershipsPromise,
+  ]);
+
+  const friends: User[] = (usersData ?? []).map(mapUser);
+
+  const groupIds = (myMemberships ?? []).map((m) => m.group_id);
+
+  let groups: Group[] = [];
+
+  if (groupIds.length > 0) {
+    const { data: groupRows } = await supabase
+      .from("groups")
+      .select("*")
+      .in("id", groupIds)
+      .order("created_at", { ascending: false });
+
+    const { data: allMemberships } = await supabase
+      .from("group_members")
+      .select("group_id, user_id")
+      .in("group_id", groupIds);
+
+    const allMemberIds = [...new Set((allMemberships ?? []).map((m) => m.user_id))];
+    const { data: allUsers } = await supabase
+      .from("users")
+      .select("*")
+      .in("id", allMemberIds);
+
+    const userMap = Object.fromEntries(
+      (allUsers ?? []).map((u) => [u.id, mapUser(u)])
+    );
+
+    const membersByGroup = (allMemberships ?? []).reduce<Record<string, User[]>>(
+      (acc, m) => {
+        if (!acc[m.group_id]) acc[m.group_id] = [];
+        const member = userMap[m.user_id];
+        if (member) acc[m.group_id].push(member);
+        return acc;
+      },
+      {}
+    );
+
+    groups = (groupRows ?? []).map((row) => ({
+      ...mapGroup(row),
+      members: membersByGroup[row.id] ?? [],
+    }));
+  }
+
+  return <FriendsView friends={friends} groups={groups} />;
 }
