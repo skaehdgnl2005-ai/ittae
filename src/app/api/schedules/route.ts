@@ -1,22 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/supabase";
-import type { Schedule } from "@/types";
-
-type ScheduleRow = Database["public"]["Tables"]["schedules"]["Row"];
-
-function mapSchedule(row: ScheduleRow): Schedule {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    title: row.title,
-    date: row.date,
-    startTime: row.start_time ?? "",
-    endTime: row.end_time ?? "",
-    memo: row.memo,
-    type: "personal",
-  };
-}
+import { mapSchedule } from "@/lib/mappers";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -25,15 +9,22 @@ export async function GET(request: NextRequest) {
   const month = parseInt(searchParams.get("month") ?? String(now.getMonth() + 1), 10);
 
   const monthStr = month.toString().padStart(2, "0");
-  const from = `${year}-${monthStr}-01`;
-  const to = `${year}-${monthStr}-31`;
+  const fromDate = `${year}-${monthStr}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const toDate = `${year}-${monthStr}-${lastDay.toString().padStart(2, "0")}`;
 
   const supabase = await createServerClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { data, error } = await supabase
     .from("schedules")
     .select("*")
-    .gte("date", from)
-    .lte("date", to)
+    .gte("date", fromDate)
+    .lte("date", toDate)
     .order("date", { ascending: true });
 
   if (error) {
@@ -58,16 +49,16 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createServerClient();
-  const { data: userData, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !userData.user) {
+  if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data, error } = await supabase
     .from("schedules")
     .insert({
-      user_id: userData.user.id,
+      user_id: user.id,
       title: body.title,
       date: body.date,
       start_time: body.startTime ?? null,
