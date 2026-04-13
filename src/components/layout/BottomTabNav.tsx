@@ -15,7 +15,7 @@ const tabs = [
 export function BottomTabNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-[83px] bg-white border-t border-gray-200 flex items-start pt-2 z-50">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-[83px] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-start pt-2 z-50">
       {tabs.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
@@ -27,13 +27,13 @@ export function BottomTabNav() {
           >
             <Icon
               size={20}
-              className={cn(active ? "text-violet-600" : "text-gray-400")}
+              className={cn(active ? "text-violet-600 dark:text-violet-400" : "text-gray-400 dark:text-gray-500")}
               strokeWidth={1.5}
             />
             <span
               className={cn(
                 "text-[10px] font-medium",
-                active ? "text-violet-600" : "text-gray-400"
+                active ? "text-violet-600 dark:text-violet-400" : "text-gray-400 dark:text-gray-500"
               )}
             >
               {label}
