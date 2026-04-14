@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { mapUser, mapGroup } from "@/lib/mappers";
 import { FriendsView } from "@/components/friends/FriendsView";
+import { mockUsers, mockGroups, mockCurrentUserId } from "@/lib/mock";
 import type { User, Group } from "@/types";
 
 export default async function FriendsPage() {
@@ -8,7 +9,9 @@ export default async function FriendsPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return <FriendsView friends={[]} groups={[]} />;
+    // 테스트용: 로그인 없이 mock 데이터 표시
+    const mockFriends = mockUsers.filter((u) => u.id !== mockCurrentUserId);
+    return <FriendsView friends={mockFriends} groups={mockGroups} />;
   }
 
   // Fetch accepted friends
@@ -87,6 +90,12 @@ export default async function FriendsPage() {
       ...mapGroup(row),
       members: membersByGroup[row.id] ?? [],
     }));
+  }
+
+  // 테스트용: 실제 친구가 없으면 mock 데이터로 폴백
+  if (friends.length === 0 && groups.length === 0) {
+    const mockFriends = mockUsers.filter((u) => u.id !== mockCurrentUserId);
+    return <FriendsView friends={mockFriends} groups={mockGroups} />;
   }
 
   return <FriendsView friends={friends} groups={groups} />;

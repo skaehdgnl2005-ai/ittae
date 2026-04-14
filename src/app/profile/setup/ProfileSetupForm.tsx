@@ -34,19 +34,21 @@ export function ProfileSetupForm({
 
     setError(null);
     startTransition(async () => {
-      try {
-        await setupProfile({
-          userId,
-          email,
-          nickname: nickname.trim(),
-          profileImageUrl: defaultAvatarUrl,
-          statusMessage: statusMessage.trim() || null,
-        });
-        router.push("/home");
-        router.refresh();
-      } catch {
-        setError("프로필 저장에 실패했습니다. 다시 시도해 주세요.");
+      const result = await setupProfile({
+        userId,
+        email,
+        nickname: nickname.trim(),
+        profileImageUrl: defaultAvatarUrl,
+        statusMessage: statusMessage.trim() || null,
+      });
+
+      if (!result.success) {
+        setError(result.error ?? "프로필 저장에 실패했습니다. 다시 시도해 주세요.");
+        return;
       }
+
+      router.push("/home");
+      router.refresh();
     });
   }
 

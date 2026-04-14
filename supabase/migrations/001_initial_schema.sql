@@ -5,7 +5,7 @@
 -- ============================================================
 
 -- ============================================================
--- 1. users
+-- 1. users (테이블 + RLS 활성화만, 정책은 뒤에서)
 -- ============================================================
 create table users (
   id uuid primary key default gen_random_uuid(),
@@ -17,21 +17,6 @@ create table users (
 );
 
 alter table users enable row level security;
-
-create policy "users_select_self" on users
-  for select using (auth.uid() = id);
-
-create policy "users_update_self" on users
-  for update using (auth.uid() = id);
-
-create policy "users_select_friends" on users
-  for select using (
-    id in (
-      select receiver_id from friendships where requester_id = auth.uid() and status = 'accepted'
-      union
-      select requester_id from friendships where receiver_id = auth.uid() and status = 'accepted'
-    )
-  );
 
 -- ============================================================
 -- 2. places
@@ -86,6 +71,27 @@ create policy "friendships_update_receiver" on friendships
   for update using (auth.uid() = receiver_id);
 
 -- ============================================================
+-- users 정책 (friendships 테이블 생성 후)
+-- ============================================================
+create policy "users_insert_self" on users
+  for insert with check (auth.uid() = id);
+
+create policy "users_select_self" on users
+  for select using (auth.uid() = id);
+
+create policy "users_update_self" on users
+  for update using (auth.uid() = id);
+
+create policy "users_select_friends" on users
+  for select using (
+    id in (
+      select receiver_id from friendships where requester_id = auth.uid() and status = 'accepted'
+      union
+      select requester_id from friendships where receiver_id = auth.uid() and status = 'accepted'
+    )
+  );
+
+-- ============================================================
 -- 4. groups
 -- ============================================================
 create table groups (
@@ -99,17 +105,6 @@ create table groups (
 );
 
 alter table groups enable row level security;
-
-create policy "groups_select_member" on groups
-  for select using (
-    id in (select group_id from group_members where user_id = auth.uid())
-  );
-
-create policy "groups_insert_host" on groups
-  for insert with check (auth.uid() = host_id);
-
-create policy "groups_update_host" on groups
-  for update using (auth.uid() = host_id);
 
 -- ============================================================
 -- 5. group_members
@@ -133,6 +128,18 @@ create policy "group_members_insert_host" on group_members
   for insert with check (
     group_id in (select id from groups where host_id = auth.uid())
   );
+
+-- groups 정책 (group_members 테이블 생성 후)
+create policy "groups_select_member" on groups
+  for select using (
+    id in (select group_id from group_members where user_id = auth.uid())
+  );
+
+create policy "groups_insert_host" on groups
+  for insert with check (auth.uid() = host_id);
+
+create policy "groups_update_host" on groups
+  for update using (auth.uid() = host_id);
 
 -- ============================================================
 -- 6. vote_sessions
@@ -241,3 +248,8 @@ alter table schedules enable row level security;
 
 create policy "schedules_all_self" on schedules
   for all using (auth.uid() = user_id);
+
+-- ============================================================
+-- 10. places 추가 컬럼 (002 마이그레이션 통합)
+-- ============================================================
+alter table places add column if not exists kakao_place_id text unique;

@@ -10,13 +10,18 @@ type SetupProfileInput = {
   statusMessage: string | null;
 };
 
+type SetupProfileResult = {
+  success: boolean;
+  error?: string;
+};
+
 export async function setupProfile({
   userId,
   email,
   nickname,
   profileImageUrl,
   statusMessage,
-}: SetupProfileInput) {
+}: SetupProfileInput): Promise<SetupProfileResult> {
   const supabase = await createServerClient();
 
   const { error } = await supabase.from("users").upsert({
@@ -28,6 +33,9 @@ export async function setupProfile({
   });
 
   if (error) {
-    throw new Error(error.message);
+    console.error("[setupProfile] Supabase error:", error.code, error.message, error.details);
+    return { success: false, error: error.message };
   }
+
+  return { success: true };
 }
