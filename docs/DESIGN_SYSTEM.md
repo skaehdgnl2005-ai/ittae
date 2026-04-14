@@ -191,11 +191,19 @@ Instrument Serif는 토스가 숫자에 세리프를 섞어 금융 신뢰감을 
 ### 카드
 
 ```css
+/* 컨테이너 카드 (섹션 전체를 감싸는 역할 — 캘린더, 요약 카드 등) */
 background: #FFFFFF;
-border: 1px solid #E4E4E7;          /* Gray 200 */
+border: 1px solid #F4F4F5;          /* Gray 100 — 배경과 부드럽게 구분 */
+border-radius: 12px;
+box-shadow: 0 2px 12px rgba(0,0,0,0.06);  /* 떠있는 느낌의 그림자 */
+overflow: hidden;                   /* 내부 구분선이 모서리를 넘지 않도록 */
+
+/* 리스트 아이템 카드 (이벤트, 일정 항목 등) */
+background: #FFFFFF;
+border: 1px solid #F4F4F5;          /* Gray 100 */
 border-radius: 12px;
 padding: 16px;
-box-shadow: 0 1px 2px rgba(0,0,0,0.04);  /* 극히 미세한 그림자 */
+box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 
 /* hover/press 상태 */
 background: #FAFAFA;                /* Gray 50 */
@@ -205,6 +213,26 @@ transition: all 150ms ease;
 
 - 카드 안에 카드를 중첩하지 않는다.
 - 카드 내부에 보더 대신 Gray 100 배경의 구분선을 사용한다.
+- 컨테이너 카드의 헤더 영역(타이틀 + 컨트롤)은 `border-bottom: 1px solid Gray 100`으로 본문과 분리한다.
+
+### 아이콘 버튼 (Icon Button)
+
+```css
+/* 컨트롤 버튼 — 내비게이션 화살표, 닫기, 공유 등 */
+width: 36px; height: 36px;          /* min 44px 터치 타겟 확보는 padding으로 보완 */
+border-radius: 8px;                 /* rounded-lg */
+background: #F4F4F5;                /* Gray 50 — 클릭 가능함을 명확히 */
+border: 1px solid #E4E4E7;          /* Gray 200 */
+box-shadow: 0 1px 2px rgba(0,0,0,0.06);  /* shadow-sm */
+
+/* hover */
+background: #E4E4E7;                /* Gray 100 */
+/* active */
+transform: scale(0.95); transition: all 150ms ease;
+```
+
+- 아이콘만 있는 버튼은 반드시 배경 + 보더로 클릭 가능 영역을 시각화한다.
+- 투명 배경 아이콘 버튼은 사용하지 않는다.
 
 ### 버튼
 
@@ -294,10 +322,29 @@ backdrop: rgba(0,0,0,0.3) — 블러 없음 (글래스모피즘 금지)
 
 ### 홈 (캘린더)
 
-- 캘린더 날짜의 숫자는 Instrument Serif로. 에디토리얼 인상의 핵심.
-- 오늘 날짜는 Violet 600 원형 배경. 일정 있는 날짜는 하단에 작은 도트(4px).
-- 일정 카드는 왼쪽에 3px 두께의 컬러 바 (개인=Gray, 모임=Violet).
-- 빈 상태: 일러스트 없이 "아직 일정이 없어요" 텍스트 + CTA 버튼.
+**오늘 요약 카드 (TodaySummaryCard)**
+- 왼쪽에 `w-1 bg-violet-600` 액센트 바를 삽입해 이벤트 카드와 동일한 언어로 통일한다.
+- `overflow: hidden`으로 액센트 바가 카드 모서리를 침범하지 않도록 한다.
+- 그림자: `0 2px 12px rgba(0,0,0,0.06)`.
+
+**캘린더 컨테이너 (MonthlyCalendar)**
+- 캘린더 전체를 컨테이너 카드로 감싼다. 배경과의 경계를 카드가 담당한다.
+- 헤더(월 표시 + 내비게이션 버튼)는 `border-bottom: 1px solid Gray 100`으로 그리드와 분리한다.
+- 요일 헤더와 날짜 그리드 사이에 `h-px bg-gray-100` 구분선을 추가한다.
+- 내비게이션 버튼(`< >`): 아이콘 버튼 규격 적용 (rounded-lg, Gray 50 배경, Gray 200 보더, shadow-sm).
+- 오늘/선택 날짜 원: Violet 600 단색 배경 + `0 2px 6px rgba(124,58,237,0.3)` 보라 글로우.
+- 캘린더 날짜 숫자는 Instrument Serif. 일정 있는 날짜는 하단에 작은 도트(4px, Violet 400).
+
+**일정 목록 (DayEventList)**
+- 섹션 헤더 앞에 `w-0.5 h-4 bg-violet-600 rounded-full` 바를 배치해 시각적 앵커를 만든다.
+- 일정 카드는 왼쪽에 3px 두께의 컬러 바 (개인=Gray 300, 모임=Violet 600).
+- 그림자: `0 2px 8px rgba(0,0,0,0.06)`.
+
+**빈 상태**
+- 일러스트 없이 "이 날은 일정이 없어요" 텍스트 + "모임 만들기" CTA 버튼(Secondary).
+
+**섹션 간 간격**
+- 수평 구분선(h-px)은 사용하지 않는다. 카드의 경계와 margin(mt-4)으로 섹션을 분리한다.
 
 ### 친구/모임 목록
 

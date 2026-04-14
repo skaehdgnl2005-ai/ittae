@@ -28,7 +28,7 @@ export function HomeCalendarView({ schedules, groups }: HomeCalendarViewProps) {
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
       />
-      <div className="h-px bg-gray-200 dark:bg-gray-700 mx-5 my-3" />
+      <div className="mt-4" />
       <DayEventList date={selectedDate} schedules={schedules} groups={groups} />
       {!hasEventOnSelected && (
         <div className="px-5 mt-4">

@@ -15,7 +15,7 @@ export function useKakaoMap() {
 
 export function KakaoMapProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const apiKey = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
 
   if (!apiKey) {
     return (

@@ -23,9 +23,12 @@ export function DayEventList({ date, schedules, groups }: DayEventListProps) {
 
   return (
     <div className="px-5 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4 mb-2">
-        {formatDateShort(date)} 일정
-      </h3>
+      <div className="flex items-center gap-2 mt-4 mb-1">
+        <div className="w-0.5 h-4 bg-violet-600 rounded-full shrink-0" />
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          {formatDateShort(date)} 일정
+        </h3>
+      </div>
       {daySchedules.map((schedule) => {
         const isGroup = schedule.type === "group";
         // TODO: Schedule에 groupId가 없어 confirmedDate로 매칭 중 (MVP 한계).
@@ -38,8 +41,8 @@ export function DayEventList({ date, schedules, groups }: DayEventListProps) {
           <div
             key={schedule.id}
             className={cn(
-              "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex gap-3",
-              "shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+              "bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 flex gap-3",
+              "shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
             )}
           >
             {/* 컬러 바 */}
