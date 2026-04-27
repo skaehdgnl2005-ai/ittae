@@ -80,7 +80,7 @@ export function AddFriendSheet({ open, onClose, myInviteCode, myNickname }: Prop
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 dark:bg-black/60">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 dark:bg-black/60">
       <div
         role="dialog"
         aria-label="친구 추가"
