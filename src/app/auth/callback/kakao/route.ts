@@ -42,15 +42,21 @@ export async function GET(request: NextRequest) {
   }
 
   // 1. 인가 코드 → Kakao access token 교환
+  //    Kakao 콘솔에서 Client Secret 을 "사용함"으로 켰다면 함께 전송 필수.
+  const tokenBody: Record<string, string> = {
+    grant_type: "authorization_code",
+    client_id: process.env.KAKAO_REST_API_KEY!,
+    redirect_uri: `${origin}${ROUTES.AUTH_CALLBACK_KAKAO}`,
+    code,
+  };
+  if (process.env.KAKAO_CLIENT_SECRET) {
+    tokenBody.client_secret = process.env.KAKAO_CLIENT_SECRET;
+  }
+
   const tokenRes = await fetch("https://kauth.kakao.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: process.env.KAKAO_REST_API_KEY!,
-      redirect_uri: `${origin}${ROUTES.AUTH_CALLBACK_KAKAO}`,
-      code,
-    }),
+    body: new URLSearchParams(tokenBody),
   });
 
   const tokenData = (await tokenRes.json()) as KakaoTokenResponse;
