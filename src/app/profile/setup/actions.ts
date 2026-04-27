@@ -44,11 +44,7 @@ export async function setupProfile({
       status_message: statusMessage,
     };
 
-    const { data, error } = await supabase
-      .from("users")
-      .upsert(payload)
-      .select()
-      .single();
+    const { error } = await supabase.from("users").upsert(payload);
 
     if (error) {
       console.error("[setupProfile] upsert error", {
@@ -60,7 +56,7 @@ export async function setupProfile({
       return { success: false, error: `${error.code ?? ""} ${error.message}`.trim() };
     }
 
-    console.log("[setupProfile] success", data?.id);
+    console.log("[setupProfile] success");
     return { success: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

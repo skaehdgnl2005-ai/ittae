@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
 import { setupProfile } from "./actions";
@@ -20,8 +19,7 @@ export function ProfileSetupForm({
   defaultNickname,
   defaultAvatarUrl,
 }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const [nickname, setNickname] = useState(defaultNickname.slice(0, 20));
   const [statusMessage, setStatusMessage] = useState("");
@@ -29,12 +27,13 @@ export function ProfileSetupForm({
 
   const isValid = nickname.trim().length >= 1;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isValid || isPending) return;
 
     setError(null);
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await setupProfile({
         userId,
         email,
@@ -45,12 +44,16 @@ export function ProfileSetupForm({
 
       if (!result.success) {
         setError(result.error ?? "프로필 저장에 실패했습니다. 다시 시도해 주세요.");
+        setIsPending(false);
         return;
       }
 
-      router.push(ROUTES.HOME);
-      router.refresh();
-    });
+      // 하드 네비게이션 — useTransition + RSC 페치 지연으로 isPending 이 풀리지 않는 케이스 회피
+      window.location.assign(ROUTES.HOME);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류");
+      setIsPending(false);
+    }
   }
 
   const avatarLetter = nickname.trim()[0]?.toUpperCase() ?? "?";
@@ -63,7 +66,7 @@ export function ProfileSetupForm({
           프로필 설정
         </h1>
         <p className="text-[14px] text-gray-500 dark:text-gray-400">
-          이때에서 사용할 나를 소개해 주세요
+          된다에서 사용할 나를 소개해 주세요
         </p>
       </div>
 
@@ -174,7 +177,7 @@ export function ProfileSetupForm({
                 : "bg-violet-600/40 pointer-events-none"
             )}
           >
-            {isPending ? "저장 중..." : "이때 시작하기"}
+            {isPending ? "저장 중..." : "된다 시작하기"}
           </button>
         </div>
       </form>
