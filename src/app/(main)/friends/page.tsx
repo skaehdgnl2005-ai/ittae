@@ -35,7 +35,7 @@ export default async function FriendsPage() {
 
     const friendsPromise = friendIds.length > 0
       ? supabase.from("users").select("*").in("id", friendIds)
-      : Promise.resolve({ data: [] as { id: string; email: string; nickname: string; profile_image_url: string | null; status_message: string | null; created_at: string }[] });
+      : Promise.resolve({ data: [] as { id: string; email: string; nickname: string; profile_image_url: string | null; status_message: string | null; created_at: string; invite_code: string | null }[] });
 
     // Fetch groups where user is a member
     const membershipsPromise = supabase

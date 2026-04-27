@@ -20,6 +20,7 @@ export type Database = {
           profile_image_url: string | null;
           status_message: string | null;
           created_at: string;
+          invite_code: string | null;
         };
         Insert: {
           id?: string;
@@ -28,6 +29,7 @@ export type Database = {
           profile_image_url?: string | null;
           status_message?: string | null;
           created_at?: string;
+          invite_code?: string | null;
         };
         Update: {
           id?: string;
@@ -36,6 +38,7 @@ export type Database = {
           profile_image_url?: string | null;
           status_message?: string | null;
           created_at?: string;
+          invite_code?: string | null;
         };
         Relationships: [];
       };
