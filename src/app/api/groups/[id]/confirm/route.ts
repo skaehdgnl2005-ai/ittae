@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapGroup } from "@/lib/mappers";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const body: { confirmedDate: string } = await request.json();
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
 
+  const { id } = await params;
+  const body: {
+    confirmedDate: string;
+    confirmedStartTime?: string;
+    confirmedEndTime?: string;
+  } = await request.json();
   const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   // Only host can confirm
   const { data: group, error: fetchError } = await supabase
@@ -33,12 +34,18 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // confirmed_start_time, confirmed_end_time are added by migration 002 but not yet in generated types
+  const updatePayload = {
+    status: "confirmed" as const,
+    confirmed_date: body.confirmedDate,
+    ...(body.confirmedStartTime && { confirmed_start_time: body.confirmedStartTime }),
+    ...(body.confirmedEndTime && { confirmed_end_time: body.confirmedEndTime }),
+  };
+
   const { data: updated, error } = await supabase
     .from("groups")
-    .update({
-      status: "confirmed",
-      confirmed_date: body.confirmedDate,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(updatePayload as any)
     .eq("id", id)
     .select()
     .single();

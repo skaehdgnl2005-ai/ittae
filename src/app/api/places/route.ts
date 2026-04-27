@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 
 type SavePlaceBody = {
   kakaoPlaceId: string;
@@ -11,6 +12,9 @@ type SavePlaceBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   const body: SavePlaceBody = await request.json();
 
   if (!body.kakaoPlaceId || !body.name) {
@@ -21,14 +25,6 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { data, error } = await supabase
     .from("places")

@@ -1,6 +1,8 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { HomeCalendarView } from "@/components/calendar/HomeCalendarView";
+import { LogoutButton } from "@/components/layout/LogoutButton";
 import { mapSchedule, mapGroup } from "@/lib/mappers";
+import { mockSchedules, mockGroups } from "@/lib/mock";
 import type { Schedule, Group } from "@/types";
 
 export default async function HomePage() {
@@ -26,11 +28,25 @@ export default async function HomePage() {
       .in("status", ["confirmed", "voting"]),
   ]);
 
-  const schedules: Schedule[] = (schedulesData ?? []).map(mapSchedule);
-  const groups: Group[] = (groupsData ?? []).map(mapGroup);
+  let schedules: Schedule[] = (schedulesData ?? []).map(mapSchedule);
+  let groups: Group[] = (groupsData ?? []).map(mapGroup);
+
+  // DB에 데이터 없으면 시연용 mock 데이터로 폴백 (각각 독립)
+  if (schedules.length === 0) {
+    schedules = mockSchedules;
+  }
+  if (groups.length === 0) {
+    groups = mockGroups;
+  }
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-dvh">
+      <div className="flex items-center justify-between px-5 pt-5 pb-2">
+        <h1 className="text-[22px] font-semibold text-gray-800 dark:text-gray-100">
+          이때
+        </h1>
+        <LogoutButton />
+      </div>
       <HomeCalendarView schedules={schedules} groups={groups} />
     </div>
   );

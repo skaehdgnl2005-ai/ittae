@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
+import { ROUTES } from "@/lib/routes";
 import { ProfileSetupForm } from "./ProfileSetupForm";
 
 export default async function ProfileSetupPage() {
@@ -9,7 +10,7 @@ export default async function ProfileSetupPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect(ROUTES.LOGIN);
   }
 
   // 이미 프로필이 있는 사용자는 홈으로
@@ -20,7 +21,7 @@ export default async function ProfileSetupPage() {
     .single();
 
   if (profile) {
-    redirect("/home");
+    redirect(ROUTES.HOME);
   }
 
   const nickname =
@@ -36,7 +37,7 @@ export default async function ProfileSetupPage() {
   return (
     <ProfileSetupForm
       userId={user.id}
-      email={user.email ?? ""}
+      email={user.email ?? null}
       defaultNickname={nickname}
       defaultAvatarUrl={avatarUrl}
     />

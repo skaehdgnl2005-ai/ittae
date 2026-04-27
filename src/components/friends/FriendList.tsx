@@ -2,12 +2,26 @@
 "use client";
 import { useState } from "react";
 import { Search } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import type { User } from "@/types";
 
 type FriendListProps = {
   users: User[];
+};
+
+const container: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
 };
 
 export function FriendList({ users }: FriendListProps) {
@@ -48,22 +62,27 @@ export function FriendList({ users }: FriendListProps) {
       </div>
 
       {/* 친구 목록 */}
-      <div className="px-5 space-y-1">
-        {filtered.map((user) => (
-          <div key={user.id} className="flex items-center gap-3 min-h-11 py-2">
-            <Avatar nickname={user.nickname} profileImageUrl={user.profileImageUrl} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{user.nickname}</p>
-              {user.statusMessage && (
-                <p className="text-xs text-gray-400 truncate">{user.statusMessage}</p>
-              )}
+      <motion.div variants={container} initial="hidden" animate="show" className="px-5 space-y-1 mt-1">
+        {filtered.map((user, idx) => (
+          <motion.div key={user.id} variants={itemVariants}>
+            <div className="flex items-center gap-3 min-h-11 py-2">
+              <Avatar nickname={user.nickname} profileImageUrl={user.profileImageUrl} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{user.nickname}</p>
+                {user.statusMessage && (
+                  <p className="text-xs text-gray-400 truncate">{user.statusMessage}</p>
+                )}
+              </div>
             </div>
-          </div>
+            {idx < filtered.length - 1 && (
+              <div className="h-px bg-gray-100 dark:bg-gray-700 ml-14" />
+            )}
+          </motion.div>
         ))}
         {filtered.length === 0 && (
           <p className="text-sm text-gray-400 py-4 text-center">검색 결과 없음</p>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

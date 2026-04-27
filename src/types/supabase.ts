@@ -15,7 +15,7 @@ export type Database = {
       users: {
         Row: {
           id: string;
-          email: string;
+          email: string | null;
           nickname: string;
           profile_image_url: string | null;
           status_message: string | null;
@@ -23,7 +23,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          email: string;
+          email?: string | null;
           nickname: string;
           profile_image_url?: string | null;
           status_message?: string | null;
@@ -31,7 +31,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          email?: string;
+          email?: string | null;
           nickname?: string;
           profile_image_url?: string | null;
           status_message?: string | null;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapSchedule } from "@/lib/mappers";
 import type { Database } from "@/types/supabase";
 
@@ -7,6 +8,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   const { id } = await params;
   const body: {
     title?: string;
@@ -29,11 +33,6 @@ export async function PATCH(
 
   const supabase = await createServerClient();
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { data, error } = await supabase
     .from("schedules")
     .update(update)
@@ -54,13 +53,10 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
+  const deleteAuth = await requireAuth();
+  if (deleteAuth.error) return deleteAuth.error;
+
   const supabase = await createServerClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { error } = await supabase.from("schedules").delete().eq("id", id);
 
   if (error) {

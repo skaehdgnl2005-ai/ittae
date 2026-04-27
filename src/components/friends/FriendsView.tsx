@@ -6,6 +6,7 @@ import { FilterChip } from "@/components/friends/FilterChip";
 import { GroupCard } from "@/components/friends/GroupCard";
 import { FriendList } from "@/components/friends/FriendList";
 import { cn } from "@/lib/utils";
+import { mockUsers, mockCurrentUserId } from "@/lib/mock";
 import type { User, Group, GroupStatus } from "@/types";
 
 type Tab = "friends" | "groups";
@@ -27,10 +28,37 @@ export function FriendsView({ friends, groups }: FriendsViewProps) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("friends");
   const [filter, setFilter] = useState<FilterValue>("all");
+  const [createdGroups] = useState<Group[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = sessionStorage.getItem("mock-new-group");
+      if (!raw) return [];
+      const data: { name: string; memberIds: string[] } = JSON.parse(raw);
+      const me = mockUsers.find((u) => u.id === mockCurrentUserId);
+      const members: User[] = (data.memberIds)
+        .map((id) => mockUsers.find((u) => u.id === id))
+        .filter((u): u is User => u !== undefined);
+      if (me && !members.some((m) => m.id === me.id)) members.unshift(me);
 
+      if (groups.some((g) => g.id === "mock-new")) return [];
+
+      return [{
+        id: "mock-new",
+        name: data.name,
+        hostId: mockCurrentUserId,
+        status: "voting" as const,
+        confirmedDate: null,
+        placeId: null,
+        createdAt: new Date().toISOString(),
+        members,
+      }];
+    } catch { return []; }
+  });
+
+  const allGroups = [...createdGroups, ...groups];
   const filteredGroups = filter === "all"
-    ? groups
-    : groups.filter((g) => g.status === filter);
+    ? allGroups
+    : allGroups.filter((g) => g.status === filter);
 
   return (
     <div className="bg-gray-50 min-h-dvh dark:bg-gray-950">

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapUser } from "@/lib/mappers";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
+
   const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const [{ data: sent }, { data: received }] = await Promise.all([
     supabase
@@ -49,16 +50,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "receiverId is required" }, { status: 400 });
   }
 
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const postAuth = await requireAuth();
+  if (postAuth.error) return postAuth.error;
+  const { user } = postAuth;
 
   if (body.receiverId === user.id) {
     return NextResponse.json({ error: "Cannot send friend request to yourself" }, { status: 400 });
   }
 
+  const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("friendships")
     .insert({

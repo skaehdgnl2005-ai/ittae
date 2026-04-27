@@ -12,10 +12,17 @@ interface KakaoLatLng {
 interface KakaoMapInstance {
   setCenter(latlng: KakaoLatLng): void;
   panTo(latlng: KakaoLatLng): void;
+  setLevel(level: number): void;
 }
 
 interface KakaoMarkerInstance {
   setMap(map: KakaoMapInstance | null): void;
+}
+
+interface KakaoCircleInstance {
+  setMap(map: KakaoMapInstance | null): void;
+  setRadius(radius: number): void;
+  setPosition(latlng: KakaoLatLng): void;
 }
 
 declare const window: Window & {
@@ -30,6 +37,16 @@ declare const window: Window & {
         position: KakaoLatLng;
         map: KakaoMapInstance;
       }) => KakaoMarkerInstance;
+      Circle: new (options: {
+        center: KakaoLatLng;
+        radius: number;
+        strokeWeight: number;
+        strokeColor: string;
+        strokeOpacity: number;
+        strokeStyle: string;
+        fillColor: string;
+        fillOpacity: number;
+      }) => KakaoCircleInstance;
     };
   };
 };
@@ -38,32 +55,66 @@ type MapViewProps = {
   places: Place[];
   selectedPlaceId: string | null;
   center?: { lat: number; lng: number };
+  radius?: number;
 };
 
 const DEFAULT_CENTER = { lat: 37.566535, lng: 126.9779692 };
 
-export function MapView({ places, selectedPlaceId, center }: MapViewProps) {
+const RADIUS_TO_LEVEL: Record<number, number> = {
+  500: 4,
+  1000: 5,
+  2000: 6,
+  3000: 7,
+  5000: 8,
+};
+
+export function MapView({ places, selectedPlaceId, center, radius }: MapViewProps) {
   const { isLoaded } = useKakaoMap();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<KakaoMapInstance | null>(null);
   const markersRef = useRef<KakaoMarkerInstance[]>([]);
+  const circleRef = useRef<KakaoCircleInstance | null>(null);
 
   useEffect(() => {
     if (!isLoaded || !mapRef.current) return;
 
+    const lat = center?.lat ?? DEFAULT_CENTER.lat;
+    const lng = center?.lng ?? DEFAULT_CENTER.lng;
+    const centerLatLng = new window.kakao.maps.LatLng(lat, lng);
+
     if (!mapInstanceRef.current) {
-      const lat = center?.lat ?? DEFAULT_CENTER.lat;
-      const lng = center?.lng ?? DEFAULT_CENTER.lng;
       mapInstanceRef.current = new window.kakao.maps.Map(mapRef.current, {
-        center: new window.kakao.maps.LatLng(lat, lng),
-        level: 5,
+        center: centerLatLng,
+        level: RADIUS_TO_LEVEL[radius ?? 1000] ?? 5,
       });
     }
 
+    const map = mapInstanceRef.current;
+    map.panTo(centerLatLng);
+
+    // 반경 원형 오버레이
+    if (radius) {
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+      }
+      circleRef.current = new window.kakao.maps.Circle({
+        center: centerLatLng,
+        radius,
+        strokeWeight: 1,
+        strokeColor: "#7c3aed",
+        strokeOpacity: 0.4,
+        strokeStyle: "solid",
+        fillColor: "#ede9fe",
+        fillOpacity: 0.25,
+      });
+      circleRef.current.setMap(map);
+      map.setLevel(RADIUS_TO_LEVEL[radius] ?? 5);
+    }
+
+    // 마커 업데이트
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    const map = mapInstanceRef.current;
     for (const place of places) {
       const pos = new window.kakao.maps.LatLng(place.latitude, place.longitude);
       markersRef.current.push(new window.kakao.maps.Marker({ position: pos, map }));
@@ -77,7 +128,7 @@ export function MapView({ places, selectedPlaceId, center }: MapViewProps) {
         );
       }
     }
-  }, [isLoaded, places, selectedPlaceId, center]);
+  }, [isLoaded, places, selectedPlaceId, center, radius]);
 
   return (
     <div ref={mapRef} className="w-full h-full relative">

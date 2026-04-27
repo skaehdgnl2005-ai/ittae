@@ -59,6 +59,15 @@ export type KakaoPlace = {
   phone: string;
 };
 
+export type TimeSlot = {
+  id: string;
+  sessionId: string;
+  userId: string;
+  date: string;       // "YYYY-MM-DD"
+  startTime: string;  // "HH:MM"
+  endTime: string;    // "HH:MM"
+};
+
 export type Memory = {
   id: string;
   groupId: string;

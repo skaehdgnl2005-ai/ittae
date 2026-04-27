@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapVote } from "@/lib/mappers";
 import type { VoteChoice } from "@/types";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: Params) {
-  const { id: sessionId } = await params;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
+  const { id: sessionId } = await params;
   const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { data: votes, error } = await supabase
     .from("votes")
@@ -30,18 +26,22 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const postAuth = await requireAuth();
+  if (postAuth.error) return postAuth.error;
+  const { user } = postAuth;
+
   const { id: sessionId } = await params;
-  const body: { date: string; choice: VoteChoice; comment?: string | null } =
+  const body: { date: string; choice: string; comment?: string | null } =
     await request.json();
 
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (body.choice === "maybe") {
+    return NextResponse.json(
+      { error: "maybe choice is no longer supported" },
+      { status: 400 }
+    );
   }
+
+  const supabase = await createServerClient();
 
   const { data: vote, error } = await supabase
     .from("votes")
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       session_id: sessionId,
       user_id: user.id,
       date: body.date,
-      choice: body.choice,
+      choice: body.choice as VoteChoice,
       comment: body.comment ?? null,
     })
     .select()
@@ -66,23 +66,27 @@ export async function POST(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const patchAuth = await requireAuth();
+  if (patchAuth.error) return patchAuth.error;
+  const { user } = patchAuth;
+
   const { id: sessionId } = await params;
-  const body: { date: string; choice: VoteChoice; comment?: string | null } =
+  const body: { date: string; choice: string; comment?: string | null } =
     await request.json();
 
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (body.choice === "maybe") {
+    return NextResponse.json(
+      { error: "maybe choice is no longer supported" },
+      { status: 400 }
+    );
   }
+
+  const supabase = await createServerClient();
 
   const { data: vote, error } = await supabase
     .from("votes")
     .update({
-      choice: body.choice,
+      choice: body.choice as VoteChoice,
       comment: body.comment ?? null,
     })
     .eq("session_id", sessionId)

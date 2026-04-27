@@ -69,7 +69,7 @@ export function MonthlyCalendar({ schedules, selectedDate, onSelectDate }: Month
               >
                 <span
                   className={cn(
-                    "font-serif w-8 h-8 flex items-center justify-center text-sm rounded-full transition-all",
+                    "font-serif w-8 h-8 flex items-center justify-center text-xl rounded-full transition-all",
                     (isSelected || isToday)
                       ? "bg-violet-600 text-white shadow-[0_2px_6px_rgba(124,58,237,0.3)]"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700",

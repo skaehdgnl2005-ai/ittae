@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   addMonths,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/candidate-dates";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useDragSelect } from "@/hooks/useDragSelect";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -34,6 +35,20 @@ export function CandidateDatePicker({
     const dateStr = format(day, "yyyy-MM-dd");
     onChange(toggleCandidateDate(selected, dateStr));
   };
+
+  const handleDragConfirm = useCallback(
+    (sweptDates: string[]) => {
+      const additions = sweptDates.filter((d) => !selected.includes(d));
+      if (additions.length === 0) return;
+      onChange([...selected, ...additions].sort());
+    },
+    [selected, onChange],
+  );
+
+  const { previewIds, isDragging, handlers } = useDragSelect({
+    attribute: "data-date",
+    onConfirm: handleDragConfirm,
+  });
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
@@ -73,18 +88,26 @@ export function CandidateDatePicker({
         <div className="h-px bg-gray-100 dark:bg-gray-700 mb-1" />
 
         {/* 날짜 그리드 */}
-        <div className="grid grid-cols-7">
+        <div
+          className={cn(
+            "grid grid-cols-7 touch-pan-y select-none",
+            isDragging && "cursor-grabbing"
+          )}
+          {...handlers}
+        >
           {days.map((day, idx) => {
             if (!day) return <div key={idx} />;
             const dateStr = format(day, "yyyy-MM-dd");
             const isSelected = selected.includes(dateStr);
             const isPast = isPastDate(day);
+            const isPreview = previewIds.includes(dateStr);
 
             return (
               <button
                 key={idx}
                 onClick={() => handleDayClick(day)}
                 disabled={isPast}
+                data-date={isPast ? undefined : dateStr}
                 aria-label={`${day.getMonth() + 1}월 ${day.getDate()}일${isSelected ? " 선택됨" : ""}`}
                 aria-pressed={isSelected}
                 className={cn(
@@ -97,7 +120,9 @@ export function CandidateDatePicker({
                     "font-serif w-8 h-8 flex items-center justify-center text-sm rounded-full transition-all",
                     isSelected
                       ? "bg-violet-600 text-white shadow-[0_2px_6px_rgba(124,58,237,0.3)]"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      : isPreview
+                        ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   )}
                 >
                   {day.getDate()}

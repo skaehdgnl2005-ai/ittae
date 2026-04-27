@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
+
   const { id } = await params;
   const body: { action: "accept" | "reject" } = await request.json();
 
@@ -16,10 +21,6 @@ export async function PATCH(
   }
 
   const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   // Verify friendship exists and current user is the receiver
   const { data: friendship, error: fetchError } = await supabase

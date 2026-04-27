@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
-import { mapGroup, mapUser, mapVoteSession, mapVote } from "@/lib/mappers";
-import type { Group, VoteSession, Vote, User } from "@/types";
+import { mapGroup, mapUser, mapVoteSession, mapVote, mapTimeSlot } from "@/lib/mappers";
+import { mockUsers, mockGroups, mockCurrentUserId, mockVoteSession, mockVotes } from "@/lib/mock";
+import type { Group, VoteSession, Vote, User, TimeSlot } from "@/types";
 import { GroupDetailClient } from "./GroupDetailClient";
+import { ROUTES } from "@/lib/routes";
 
 export default async function GroupDetailPage({
   params,
@@ -14,9 +16,33 @@ export default async function GroupDetailPage({
 
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser();
-  if (authError || !user) redirect("/login");
+
+  // mock 그룹 ID인 경우 시연용 mock 데이터 표시
+  if (id.startsWith("mock-")) {
+    const foundMock = mockGroups.find((g) => g.id === id);
+    const mockGroup: Group = foundMock ?? {
+      id,
+      name: "테스트 모임",
+      hostId: mockCurrentUserId,
+      status: "voting",
+      confirmedDate: null,
+      placeId: null,
+      createdAt: new Date().toISOString(),
+      members: mockUsers.slice(0, 5),
+    };
+    return (
+      <GroupDetailClient
+        group={mockGroup}
+        voteSession={mockVoteSession}
+        initialVotes={mockVotes}
+        initialTimeSlots={[]}
+        currentUserId={mockCurrentUserId}
+      />
+    );
+  }
+
+  if (!user) redirect(ROUTES.LOGIN);
 
   // Verify membership
   const { data: membership } = await supabase
@@ -67,6 +93,7 @@ export default async function GroupDetailPage({
         group={group}
         voteSession={null}
         initialVotes={[]}
+        initialTimeSlots={[]}
         currentUserId={user.id}
       />
     );
@@ -82,11 +109,22 @@ export default async function GroupDetailPage({
 
   const initialVotes: Vote[] = (votesData ?? []).map(mapVote);
 
+  // Fetch initial time slots (time_slots not yet in generated Supabase types)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: timeSlotsData } = await (supabase as any)
+    .from("time_slots")
+    .select("*")
+    .eq("session_id", sessionRow.id);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const initialTimeSlots: TimeSlot[] = ((timeSlotsData ?? []) as any[]).map(mapTimeSlot);
+
   return (
     <GroupDetailClient
       group={group}
       voteSession={voteSession}
       initialVotes={initialVotes}
+      initialTimeSlots={initialTimeSlots}
       currentUserId={user.id}
     />
   );

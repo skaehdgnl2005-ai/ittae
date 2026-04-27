@@ -3,6 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { ROUTES } from "@/lib/routes";
 
 async function getOrigin() {
   const h = await headers();
@@ -18,7 +19,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}${ROUTES.AUTH_CALLBACK}`,
     },
   });
 
@@ -36,7 +37,7 @@ export async function signInWithKakao() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}${ROUTES.AUTH_CALLBACK}`,
     },
   });
 
@@ -45,4 +46,10 @@ export async function signInWithKakao() {
   }
 
   redirect(data.url);
+}
+
+export async function signOut() {
+  const supabase = await createServerClient();
+  await supabase.auth.signOut();
+  redirect(ROUTES.LOGIN);
 }

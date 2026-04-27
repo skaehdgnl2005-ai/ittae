@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapGroup, mapUser } from "@/lib/mappers";
 import type { GroupStatus, User } from "@/types";
 
@@ -7,13 +8,12 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
 
+  const { id } = await params;
   const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   // Verify user is a member of this group
   const { data: membership } = await supabase
@@ -66,11 +66,11 @@ export async function PATCH(
     confirmedDate?: string | null;
   } = await request.json();
 
+  const patchAuth = await requireAuth();
+  if (patchAuth.error) return patchAuth.error;
+  const { user } = patchAuth;
+
   const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   // Only host can update group
   const { data: group, error: fetchError } = await supabase

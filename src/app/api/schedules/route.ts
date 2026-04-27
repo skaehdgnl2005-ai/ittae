@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapSchedule } from "@/lib/mappers";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   const { searchParams } = request.nextUrl;
   const now = new Date();
   const year = parseInt(searchParams.get("year") ?? String(now.getFullYear()), 10);
@@ -14,11 +18,6 @@ export async function GET(request: NextRequest) {
   const toDate = `${year}-${monthStr}-${lastDay.toString().padStart(2, "0")}`;
 
   const supabase = await createServerClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { data, error } = await supabase
     .from("schedules")
@@ -48,13 +47,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "title and date are required" }, { status: 400 });
   }
 
+  const postAuth = await requireAuth();
+  if (postAuth.error) return postAuth.error;
+  const { user } = postAuth;
+
   const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { data, error } = await supabase
     .from("schedules")
     .insert({

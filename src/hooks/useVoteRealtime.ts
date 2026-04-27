@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { mapVote } from "@/lib/mappers";
-import type { Vote } from "@/types";
+import { mapVote, mapTimeSlot } from "@/lib/mappers";
+import type { Vote, TimeSlot } from "@/types";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -11,15 +11,18 @@ type VoteRow = Database["public"]["Tables"]["votes"]["Row"];
 
 export function useVoteRealtime(
   sessionId: string,
-  initialVotes: Vote[]
-): Vote[] {
+  initialVotes: Vote[],
+  initialTimeSlots: TimeSlot[] = []
+): { votes: Vote[]; timeSlots: TimeSlot[] } {
   const [votes, setVotes] = useState<Vote[]>(initialVotes);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(initialTimeSlots);
 
   useEffect(() => {
+    if (!sessionId) return;
     const supabase = createBrowserClient();
 
     const channel = supabase
-      .channel(`votes:${sessionId}`)
+      .channel(`vote-all:${sessionId}`)
       .on(
         "postgres_changes",
         {
@@ -44,6 +47,26 @@ export function useVoteRealtime(
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "time_slots",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { id: string; session_id: string; user_id: string; date: string; start_time: string; end_time: string };
+            setTimeSlots((prev) => [...prev, mapTimeSlot(row)]);
+          } else if (payload.eventType === "DELETE") {
+            const old = payload.old as { id: string };
+            setTimeSlots((prev) =>
+              prev.filter((s) => s.id !== old.id)
+            );
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -51,5 +74,5 @@ export function useVoteRealtime(
     };
   }, [sessionId]);
 
-  return votes;
+  return { votes, timeSlots };
 }

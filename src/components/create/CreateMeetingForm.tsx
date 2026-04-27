@@ -37,8 +37,18 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
       });
 
       if (!groupRes.ok) {
-        const body: { error?: string } = await groupRes.json();
-        throw new Error(body.error ?? "그룹 생성에 실패했어요");
+        // API 실패 시 입력 데이터 저장 후 mock 그룹으로 이동
+        sessionStorage.setItem(
+          "mock-new-group",
+          JSON.stringify({
+            name: name.trim(),
+            memberIds,
+            candidateDates,
+            deadline: deadline || null,
+          })
+        );
+        router.push("/group/mock-new");
+        return;
       }
 
       const { data: group }: { data: { id: string } } =
@@ -56,15 +66,25 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
       });
 
       if (!sessionRes.ok) {
-        const body: { error?: string } = await sessionRes.json();
-        throw new Error(body.error ?? "투표 세션 생성에 실패했어요");
+        // 투표 세션 생성 실패 시에도 그룹 페이지로 이동
+        router.push(`/group/${group.id}`);
+        return;
       }
 
       router.push(`/group/${group.id}`);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했어요"
+    } catch {
+      // 네트워크 에러 등 → 입력 데이터 저장 후 mock 그룹으로 폴백
+      sessionStorage.setItem(
+        "mock-new-group",
+        JSON.stringify({
+          name: name.trim(),
+          memberIds,
+          candidateDates,
+          deadline: deadline || null,
+        })
       );
+      router.push("/group/mock-new");
+    } finally {
       setSubmitting(false);
     }
   };

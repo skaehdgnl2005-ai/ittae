@@ -1,8 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/supabase";
-
-const PUBLIC_PATHS = ["/login", "/auth"];
+import { PUBLIC_PATHS, ROUTES } from "@/lib/routes";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -37,7 +36,11 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user && !isPublic) {
-    const loginUrl = new URL("/login", request.url);
+    // 개발 환경에서는 인증 없이도 접근 허용 (데모 시연용)
+    if (process.env.NODE_ENV === "development") {
+      return supabaseResponse;
+    }
+    const loginUrl = new URL(ROUTES.LOGIN, request.url);
     return NextResponse.redirect(loginUrl);
   }
 

@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapMemory, mapUser } from "@/lib/mappers";
 import type { Memory, User } from "@/types";
 
 export async function GET() {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const supabase = await createServerClient();
 
   // 현재 사용자가 속한 그룹 조회
   const { data: myMemberships, error: memberError } = await supabase
@@ -92,15 +89,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const postAuth = await requireAuth();
+  if (postAuth.error) return postAuth.error;
+  const { user } = postAuth;
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const supabase = await createServerClient();
 
   // 해당 그룹의 멤버인지 확인 (RLS 보조)
   const { data: membership } = await supabase

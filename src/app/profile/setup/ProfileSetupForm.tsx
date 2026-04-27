@@ -4,11 +4,12 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 import { setupProfile } from "./actions";
 
 type Props = {
   userId: string;
-  email: string;
+  email: string | null;
   defaultNickname: string;
   defaultAvatarUrl: string | null;
 };
@@ -47,7 +48,7 @@ export function ProfileSetupForm({
         return;
       }
 
-      router.push("/home");
+      router.push(ROUTES.HOME);
       router.refresh();
     });
   }

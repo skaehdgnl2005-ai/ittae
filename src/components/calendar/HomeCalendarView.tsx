@@ -22,6 +22,11 @@ export function HomeCalendarView({ schedules, groups }: HomeCalendarViewProps) {
 
   return (
     <>
+      <div className="pt-8 px-5 pb-4">
+        <h2 className="text-[28px] font-bold text-gray-900 dark:text-gray-50 tracking-tight leading-tight">
+          오늘의 모임
+        </h2>
+      </div>
       <TodaySummaryCard schedules={schedules} />
       <MonthlyCalendar
         schedules={schedules}

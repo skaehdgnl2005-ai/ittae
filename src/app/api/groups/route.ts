@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth";
 import { mapGroup, mapUser } from "@/lib/mappers";
 import type { Group, User } from "@/types";
 
 export async function GET() {
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
 
+  const supabase = await createServerClient();
   const { data: myMemberships, error: memberError } = await supabase
     .from("group_members")
     .select("group_id")
@@ -77,12 +77,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
 
-  const supabase = await createServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { user } = auth;
 
+  const supabase = await createServerClient();
   const { data: group, error: groupError } = await supabase
     .from("groups")
     .insert({

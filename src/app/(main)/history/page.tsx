@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { mapMemory, mapUser } from "@/lib/mappers";
 import { StatsSummary } from "@/components/history/StatsSummary";
 import { TimelineView } from "@/components/history/TimelineView";
+import { ROUTES } from "@/lib/routes";
 import type { Memory, Place, User } from "@/types";
 
 export default async function HistoryPage() {
@@ -10,17 +12,8 @@ export default async function HistoryPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return (
-      <div className="bg-gray-50 min-h-dvh">
-        <div className="px-5 py-12 text-center">
-          <p className="text-sm text-gray-500">로그인이 필요합니다</p>
-        </div>
-      </div>
-    );
-  }
+  if (!user) redirect(ROUTES.LOGIN);
 
-  // 내 그룹 조회
   const { data: myMemberships } = await supabase
     .from("group_members")
     .select("group_id")
