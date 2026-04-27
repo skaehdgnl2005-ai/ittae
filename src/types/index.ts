@@ -88,3 +88,19 @@ export type Schedule = {
   memo: string | null;
   type: "personal" | "group";
 };
+
+export type PublicUser = Pick<User, "id" | "nickname" | "profileImageUrl" | "statusMessage">;
+
+export type RelationshipStatus =
+  | "none"
+  | "pending_sent"
+  | "pending_received"
+  | "accepted";
+
+export type UserSearchResult = PublicUser & { relationship: RelationshipStatus };
+
+export type PendingFriendRequest = {
+  requesterId: string;
+  requester: PublicUser;
+  createdAt: string;
+};

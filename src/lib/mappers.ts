@@ -1,5 +1,5 @@
 import type { Database } from "@/types/supabase";
-import type { Schedule, Group, User, VoteSession, Vote, Memory, TimeSlot } from "@/types";
+import type { Schedule, Group, User, VoteSession, Vote, Memory, TimeSlot, PublicUser } from "@/types";
 
 export function mapSchedule(
   row: Database["public"]["Tables"]["schedules"]["Row"]
@@ -90,5 +90,21 @@ export function mapTimeSlot(
     date: row.date,
     startTime: row.start_time,
     endTime: row.end_time,
+  };
+}
+
+type PublicUserRow = {
+  id: string;
+  nickname: string;
+  profile_image_url: string | null;
+  status_message: string | null;
+};
+
+export function mapPublicUser(row: PublicUserRow): PublicUser {
+  return {
+    id: row.id,
+    nickname: row.nickname,
+    profileImageUrl: row.profile_image_url,
+    statusMessage: row.status_message,
   };
 }
