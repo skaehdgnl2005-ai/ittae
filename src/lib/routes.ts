@@ -2,6 +2,7 @@ export const ROUTES = {
   HOME: "/home",
   LOGIN: "/login",
   AUTH_CALLBACK: "/auth/callback",
+  AUTH_CALLBACK_KAKAO: "/auth/callback/kakao",
   PROFILE_SETUP: "/profile/setup",
 } as const;
 
