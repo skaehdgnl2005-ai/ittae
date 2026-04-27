@@ -170,3 +170,26 @@ export async function rejectFriendRequest(
   revalidatePath("/friends");
   return { ok: true, data: undefined };
 }
+
+export async function getInviteUserByCode(
+  code: string
+): Promise<PublicUser | null> {
+  const trimmed = code.trim();
+  if (trimmed.length !== 6) return null;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("users")
+    .select("id, nickname, profile_image_url, status_message")
+    .eq("invite_code", trimmed)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    nickname: data.nickname,
+    profileImageUrl: data.profile_image_url,
+    statusMessage: data.status_message,
+  };
+}
