@@ -13,6 +13,8 @@ export function mapSchedule(
     endTime: row.end_time ?? "",
     memo: row.memo,
     type: "personal",
+    source: row.source,
+    externalEventId: row.external_event_id,
   };
 }
 

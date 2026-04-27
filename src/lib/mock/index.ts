@@ -98,7 +98,7 @@ export const mockMemories: Memory[] = [
 ];
 
 export const mockSchedules: Schedule[] = [
-  { id: "s1", userId: "u10", title: "치과 예약", date: "2026-04-13", startTime: "14:00", endTime: "15:00", memo: null, type: "personal" },
-  { id: "s2", userId: "u10", title: "분기 리뷰 미팅", date: "2026-04-15", startTime: "10:00", endTime: "11:30", memo: "회의실 A", type: "personal" },
-  { id: "s3", userId: "u10", title: "회사 팀 회식", date: "2026-04-20", startTime: "18:00", endTime: "21:00", memo: null, type: "group" },
+  { id: "s1", userId: "u10", title: "치과 예약", date: "2026-04-13", startTime: "14:00", endTime: "15:00", memo: null, type: "personal", source: "manual", externalEventId: null },
+  { id: "s2", userId: "u10", title: "분기 리뷰 미팅", date: "2026-04-15", startTime: "10:00", endTime: "11:30", memo: "회의실 A", type: "personal", source: "manual", externalEventId: null },
+  { id: "s3", userId: "u10", title: "회사 팀 회식", date: "2026-04-20", startTime: "18:00", endTime: "21:00", memo: null, type: "group", source: "manual", externalEventId: null },
 ];
