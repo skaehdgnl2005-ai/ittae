@@ -38,6 +38,7 @@ export async function signInWithKakao() {
     provider: "kakao",
     options: {
       redirectTo: `${origin}${ROUTES.AUTH_CALLBACK}`,
+      scopes: "profile_nickname profile_image",
     },
   });
 
