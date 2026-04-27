@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/supabase/auth";
 import { mapGroup, mapUser } from "@/lib/mappers";
 import type { Group, User } from "@/types";
@@ -96,9 +97,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: groupError?.message ?? "Failed to create group" }, { status: 500 });
   }
 
-  // Add host + requested members
+  // Add host + requested members.
+  // group_members_insert_host RLS는 groups SELECT를 거치는데, groups_select_member가
+  // 이미 멤버여야 보여줘서 호스트가 그룹을 막 만든 직후엔 chicken-and-egg로 막힘.
+  // host_id는 위에서 RLS-validated insert로 user.id로 잠긴 상태 → admin client로
+  // group_members만 RLS 우회해 안전하게 채움. memberIds는 클라이언트가 지정 가능하지만
+  // group은 이미 host == user.id 임을 DB가 보장하므로 권한 상승 위험 없음.
+  const admin = createAdminClient();
   const memberIds = [...new Set([user.id, ...(body.memberIds ?? [])])];
-  const { error: memberError } = await supabase
+  const { error: memberError } = await admin
     .from("group_members")
     .insert(memberIds.map((uid) => ({ group_id: group.id, user_id: uid })));
 
