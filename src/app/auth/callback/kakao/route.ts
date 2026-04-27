@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { createHmac } from "crypto";
-import { createServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/supabase";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROUTES } from "@/lib/routes";
 
@@ -29,7 +30,7 @@ type KakaoUserResponse = {
   };
 };
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const errorParam = searchParams.get("error");
@@ -82,8 +83,7 @@ export async function GET(request: Request) {
     userData.properties?.profile_image ??
     null;
 
-  // 3. Supabase auth.users 에 kakao 식별자로 합성 이메일 사용해 가입/로그인
-  // (이메일 동의항목을 못 쓰므로 placeholder. UNIQUE 보장은 kakao_id 기반)
+  // 3. Supabase auth.users 에 합성 이메일로 가입 (idempotent)
   const syntheticEmail = `kakao_${kakaoId}@kakao.local`;
   const password = createHmac(
     "sha256",
@@ -107,7 +107,6 @@ export async function GET(request: Request) {
     },
   });
 
-  // 이미 가입된 사용자는 createUser 가 에러를 반환 — 무시하고 로그인 시도
   if (createError && !/already|registered|exists/i.test(createError.message)) {
     console.error("[kakao callback] createUser failed", createError);
     return NextResponse.redirect(
@@ -115,7 +114,29 @@ export async function GET(request: Request) {
     );
   }
 
-  const supabase = await createServerClient();
+  // 4. 응답 객체에 직접 쿠키를 attach 하는 패턴 — Route Handler 에서
+  //    NextResponse.redirect 를 별도로 만들면 cookies().set 결과가 누락됨.
+  //    먼저 dummy redirect 응답을 만들고, signInWithPassword 가 set 하는
+  //    쿠키를 그 응답에 직접 기록한 뒤 최종 redirect 로 교체한다.
+  let response = NextResponse.redirect(`${origin}${ROUTES.HOME}`);
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
   const { data: signInData, error: signInError } =
     await supabase.auth.signInWithPassword({
       email: syntheticEmail,
@@ -129,16 +150,23 @@ export async function GET(request: Request) {
     );
   }
 
-  // 4. 프로필 존재 여부에 따라 라우팅
+  // 5. 프로필 존재 여부 확인 → 최종 redirect URL 결정
   const { data: profile } = await supabase
     .from("users")
     .select("id")
     .eq("id", signInData.user.id)
     .single();
 
-  if (!profile) {
-    return NextResponse.redirect(`${origin}${ROUTES.PROFILE_SETUP}`);
-  }
+  const targetUrl = profile
+    ? `${origin}${ROUTES.HOME}`
+    : `${origin}${ROUTES.PROFILE_SETUP}`;
 
-  return NextResponse.redirect(`${origin}${ROUTES.HOME}`);
+  // 쿠키를 유지한 채 최종 redirect 로 교체
+  const finalResponse = NextResponse.redirect(targetUrl);
+  response.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie);
+  });
+  response = finalResponse;
+
+  return response;
 }
