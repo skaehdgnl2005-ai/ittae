@@ -22,20 +22,49 @@ export async function setupProfile({
   profileImageUrl,
   statusMessage,
 }: SetupProfileInput): Promise<SetupProfileResult> {
-  const supabase = await createServerClient();
+  console.log("[setupProfile] start", { userId, hasEmail: !!email, nickname });
 
-  const { error } = await supabase.from("users").upsert({
-    id: userId,
-    email: email && email.trim().length > 0 ? email : null,
-    nickname,
-    profile_image_url: profileImageUrl,
-    status_message: statusMessage,
-  });
+  try {
+    const supabase = await createServerClient();
 
-  if (error) {
-    console.error("[setupProfile] Supabase error:", error.code, error.message, error.details);
-    return { success: false, error: error.message };
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.log("[setupProfile] auth user", user?.id, "vs userId", userId);
+
+    if (!user) {
+      return { success: false, error: "로그인이 만료되었습니다. 다시 로그인해 주세요." };
+    }
+
+    const payload = {
+      id: userId,
+      email: email && email.trim().length > 0 ? email : null,
+      nickname,
+      profile_image_url: profileImageUrl,
+      status_message: statusMessage,
+    };
+
+    const { data, error } = await supabase
+      .from("users")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[setupProfile] upsert error", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return { success: false, error: `${error.code ?? ""} ${error.message}`.trim() };
+    }
+
+    console.log("[setupProfile] success", data?.id);
+    return { success: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[setupProfile] unexpected", msg);
+    return { success: false, error: `예외 발생: ${msg}` };
   }
-
-  return { success: true };
 }
