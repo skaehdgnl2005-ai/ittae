@@ -124,3 +124,49 @@ export async function sendFriendRequest(
   revalidatePath("/friends");
   return { ok: true, data: undefined };
 }
+
+export async function acceptFriendRequest(
+  requesterId: string
+): Promise<Result<void>> {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "로그인이 필요합니다." };
+
+  const { error } = await supabase
+    .from("friendships")
+    .update({ status: "accepted" })
+    .eq("requester_id", requesterId)
+    .eq("receiver_id", user.id)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("[acceptFriendRequest]", error);
+    return { ok: false, error: "수락에 실패했습니다." };
+  }
+
+  revalidatePath("/friends");
+  return { ok: true, data: undefined };
+}
+
+export async function rejectFriendRequest(
+  requesterId: string
+): Promise<Result<void>> {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "로그인이 필요합니다." };
+
+  const { error } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("requester_id", requesterId)
+    .eq("receiver_id", user.id)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("[rejectFriendRequest]", error);
+    return { ok: false, error: "거절에 실패했습니다." };
+  }
+
+  revalidatePath("/friends");
+  return { ok: true, data: undefined };
+}
