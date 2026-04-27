@@ -1,13 +1,19 @@
-// src/components/friends/FriendsView.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import { FilterChip } from "@/components/friends/FilterChip";
 import { GroupCard } from "@/components/friends/GroupCard";
 import { FriendList } from "@/components/friends/FriendList";
+import { PendingRequestsSection } from "@/components/friends/PendingRequestsSection";
+import { AddFriendSheet } from "@/components/friends/AddFriendSheet";
 import { cn } from "@/lib/utils";
-import { mockUsers, mockCurrentUserId } from "@/lib/mock";
-import type { User, Group, GroupStatus } from "@/types";
+import type {
+  User,
+  Group,
+  GroupStatus,
+  PendingFriendRequest,
+} from "@/types";
 
 type Tab = "friends" | "groups";
 type FilterValue = "all" | GroupStatus;
@@ -22,43 +28,26 @@ const FILTERS: { value: FilterValue; label: string }[] = [
 type FriendsViewProps = {
   friends: User[];
   groups: Group[];
+  pendingRequests: PendingFriendRequest[];
+  myInviteCode: string;
+  myNickname: string;
 };
 
-export function FriendsView({ friends, groups }: FriendsViewProps) {
+export function FriendsView({
+  friends,
+  groups,
+  pendingRequests,
+  myInviteCode,
+  myNickname,
+}: FriendsViewProps) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("friends");
   const [filter, setFilter] = useState<FilterValue>("all");
-  const [createdGroups] = useState<Group[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = sessionStorage.getItem("mock-new-group");
-      if (!raw) return [];
-      const data: { name: string; memberIds: string[] } = JSON.parse(raw);
-      const me = mockUsers.find((u) => u.id === mockCurrentUserId);
-      const members: User[] = (data.memberIds)
-        .map((id) => mockUsers.find((u) => u.id === id))
-        .filter((u): u is User => u !== undefined);
-      if (me && !members.some((m) => m.id === me.id)) members.unshift(me);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-      if (groups.some((g) => g.id === "mock-new")) return [];
-
-      return [{
-        id: "mock-new",
-        name: data.name,
-        hostId: mockCurrentUserId,
-        status: "voting" as const,
-        confirmedDate: null,
-        placeId: null,
-        createdAt: new Date().toISOString(),
-        members,
-      }];
-    } catch { return []; }
-  });
-
-  const allGroups = [...createdGroups, ...groups];
   const filteredGroups = filter === "all"
-    ? allGroups
-    : allGroups.filter((g) => g.status === filter);
+    ? groups
+    : groups.filter((g) => g.status === filter);
 
   return (
     <div className="bg-gray-50 min-h-dvh dark:bg-gray-950">
@@ -83,10 +72,38 @@ export function FriendsView({ friends, groups }: FriendsViewProps) {
       </div>
 
       {tab === "friends" ? (
-        <FriendList users={friends} />
+        <div>
+          <PendingRequestsSection requests={pendingRequests} />
+
+          {/* 친구 추가 진입점 — 검색바 우측 + 버튼 */}
+          <div className="px-5 pt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              aria-label="친구 추가"
+              className={cn(
+                "min-h-11 min-w-11 flex items-center justify-center",
+                "rounded-full bg-violet-600 text-white active:bg-violet-700"
+              )}
+            >
+              <UserPlus size={18} />
+            </button>
+          </div>
+
+          <FriendList users={friends} />
+
+          <AddFriendSheet
+            open={sheetOpen}
+            onClose={() => {
+              setSheetOpen(false);
+              router.refresh();
+            }}
+            myInviteCode={myInviteCode}
+            myNickname={myNickname}
+          />
+        </div>
       ) : (
         <div>
-          {/* 필터 칩 */}
           <div className="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
             {FILTERS.map((f) => (
               <FilterChip
@@ -98,7 +115,6 @@ export function FriendsView({ friends, groups }: FriendsViewProps) {
               />
             ))}
           </div>
-          {/* 그룹 목록 */}
           <div className="px-5 space-y-3 pb-6">
             {filteredGroups.map((g) => (
               <GroupCard key={g.id} group={g} onClick={() => router.push(`/group/${g.id}`)} />
