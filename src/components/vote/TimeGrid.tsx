@@ -12,8 +12,10 @@ type TimeGridProps = {
   dateChoices: Record<string, VoteChoice | null>;
   isSlotSelected: (date: string, time: string) => boolean;
   pendingStart: { date: string; time: string } | null;
-  allTimeSlots: TimeSlot[];
-  totalMembers: number;
+  /** 다른 사람만 — 본인 selection은 별도로 그려진다 */
+  othersTimeSlots: TimeSlot[];
+  /** 다른 사람 총 수 (멤버 - 1) */
+  othersTotal: number;
   onCellClick: (date: string, time: string) => void;
   onDragCommit: (slotIds: string[]) => void;
 };
@@ -23,8 +25,8 @@ export function TimeGrid({
   dateChoices,
   isSlotSelected,
   pendingStart,
-  allTimeSlots,
-  totalMembers,
+  othersTimeSlots,
+  othersTotal,
   onCellClick,
   onDragCommit,
 }: TimeGridProps) {
@@ -54,19 +56,21 @@ export function TimeGrid({
           ))}
         </div>
 
-        {/* 날짜별 시간 열 */}
+        {/* 날짜별 시간 열 — 모바일에서 hold→drag 시 페이지 스크롤이 끼어들지 않도록
+            컨테이너 자체에 항상 touch-action:none을 적용한다. 페이지 스크롤은
+            그리드 바깥(시간 라벨 영역, 헤더, 위·아래 패딩)에서 그대로 가능. */}
         <div
           ref={bindTarget}
           className={cn(
-            "flex flex-1 gap-1 select-none touch-pan-y",
-            isDragging && "touch-none cursor-grabbing"
+            "flex flex-1 gap-1 select-none touch-none",
+            isDragging && "cursor-grabbing"
           )}
           {...handlers}
         >
           {dates.map((date) => {
             const choice = dateChoices[date];
             const disabled = choice !== "available";
-            const heatmap = getTimeSlotHeatmap(allTimeSlots, date);
+            const othersHeatmap = getTimeSlotHeatmap(othersTimeSlots, date);
 
             return (
               <div key={date} className="flex-1">
@@ -76,8 +80,8 @@ export function TimeGrid({
                   isSlotSelected={isSlotSelected}
                   pendingStart={pendingStart}
                   previewSlots={previewSlots}
-                  heatmap={heatmap}
-                  totalMembers={totalMembers}
+                  othersHeatmap={othersHeatmap}
+                  othersTotal={othersTotal}
                   onCellClick={onCellClick}
                 />
               </div>

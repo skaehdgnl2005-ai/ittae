@@ -208,11 +208,15 @@ export function GroupDetailClient({
       })
     : [];
 
-  // 본인의 로컬 selection을 즉시 timeslot 형태로 합쳐 히트맵·랭킹에 반영한다.
-  // 서버 라운드트립을 기다리지 않으므로 자기 화면에서 색이 즉시 칠해진다.
+  // 다른 사람들 timeSlots만 — 히트맵 색 계산용 (본인은 본인 색으로 별도 표시).
+  const othersTimeSlots = useMemo<TimeSlot[]>(
+    () => allTimeSlots.filter((s) => s.userId !== currentUserId),
+    [allTimeSlots, currentUserId]
+  );
+
+  // 본인의 로컬 selection까지 합친 슬롯 — 1·2순위 시간 랭킹 계산용 (본인 가용성도 반영).
   const effectiveTimeSlots = useMemo<TimeSlot[]>(() => {
-    if (!voteSession) return allTimeSlots;
-    const others = allTimeSlots.filter((s) => s.userId !== currentUserId);
+    if (!voteSession) return othersTimeSlots;
     const mine: TimeSlot[] = [];
     for (const date of voteSession.candidateDates) {
       const ranges = rangesByDate[date] ?? [];
@@ -227,12 +231,13 @@ export function GroupDetailClient({
         });
       });
     }
-    return [...others, ...mine];
-  }, [allTimeSlots, rangesByDate, voteSession, currentUserId]);
+    return [...othersTimeSlots, ...mine];
+  }, [othersTimeSlots, rangesByDate, voteSession, currentUserId]);
 
   const rankedSlots = getRankedTimeSlots(effectiveTimeSlots, activeDates, 2);
   const bestTime = rankedSlots[0] ?? null;
   const hasMyVotes = Object.values(dateChoices).some((c) => c !== null);
+  const othersTotal = Math.max(0, group.members.length - 1);
 
   return (
     <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
@@ -310,8 +315,8 @@ export function GroupDetailClient({
             dateChoices={dateChoices}
             isSlotSelected={isSlotSelected}
             pendingStart={pendingStart}
-            allTimeSlots={effectiveTimeSlots}
-            totalMembers={group.members.length}
+            othersTimeSlots={othersTimeSlots}
+            othersTotal={othersTotal}
             onCellClick={handleTimeSlotClick}
             onDragCommit={commitSweptSlots}
           />

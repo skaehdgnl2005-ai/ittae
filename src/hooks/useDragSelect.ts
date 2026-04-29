@@ -166,7 +166,12 @@ export function useDragSelect({
   }, []);
 
   const handleNativeTouchMove = useCallback((e: TouchEvent) => {
-    if (modeRef.current === "dragging" && e.cancelable) {
+    // pending(꾹 누르는 대기 시간)에도 preventDefault — 컨테이너가 touch-action:none이지만
+    // 사용자 환경에 따라 native scroll이 끼어드는 케이스를 막는 안전망.
+    if (
+      (modeRef.current === "pending" || modeRef.current === "dragging") &&
+      e.cancelable
+    ) {
       e.preventDefault();
     }
   }, []);

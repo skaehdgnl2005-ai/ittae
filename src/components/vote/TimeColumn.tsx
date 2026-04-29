@@ -9,8 +9,10 @@ type TimeColumnProps = {
   isSlotSelected: (date: string, time: string) => boolean;
   pendingStart: { date: string; time: string } | null;
   previewSlots: Set<string>;
-  heatmap: Record<string, number>;
-  totalMembers: number;
+  /** 다른 사람만 카운트한 시간대별 가용 인원 (본인 제외) */
+  othersHeatmap: Record<string, number>;
+  /** 다른 사람 총 수 (멤버 - 1) */
+  othersTotal: number;
   onCellClick: (date: string, time: string) => void;
 };
 
@@ -25,8 +27,8 @@ export function TimeColumn({
   isSlotSelected,
   pendingStart,
   previewSlots,
-  heatmap,
-  totalMembers,
+  othersHeatmap,
+  othersTotal,
   onCellClick,
 }: TimeColumnProps) {
   return (
@@ -46,8 +48,8 @@ export function TimeColumn({
               pendingStart?.date === date && pendingStart?.time === time
             }
             isPreview={previewSlots.has(`${date}T${time}`)}
-            heatCount={heatmap[time] ?? 0}
-            totalMembers={totalMembers}
+            othersCount={othersHeatmap[time] ?? 0}
+            othersTotal={othersTotal}
             onClick={() => onCellClick(date, time)}
           />
         ))}
