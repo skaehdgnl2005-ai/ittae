@@ -10,26 +10,8 @@ import { CommentSection } from "@/components/vote/CommentSection";
 import { useVoteRealtime } from "@/hooks/useVoteRealtime";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
 import { getBestDate, getBestTimeSlot, isAllVoted } from "@/lib/vote";
-import { mockUsers, mockCurrentUserId } from "@/lib/mock";
-import type { Vote, VoteChoice, VoteSession, Group, User, TimeSlot } from "@/types";
+import type { Vote, VoteChoice, VoteSession, Group, TimeSlot } from "@/types";
 import { ChevronLeft, Link2, Check } from "lucide-react";
-
-type MockNewData = {
-  name: string;
-  memberIds: string[];
-  candidateDates: string[];
-  deadline: string | null;
-};
-
-function readMockNewData(): MockNewData | null {
-  try {
-    const raw = sessionStorage.getItem("mock-new-group");
-    if (!raw) return null;
-    return JSON.parse(raw) as MockNewData;
-  } catch {
-    return null;
-  }
-}
 
 type Props = {
   group: Group;
@@ -47,78 +29,20 @@ function cycleDateChoice(current: VoteChoice | null): VoteChoice | null {
 }
 
 export function GroupDetailClient({
-  group: defaultGroup,
-  voteSession: defaultSession,
-  initialVotes: defaultVotes,
-  initialTimeSlots: defaultTimeSlots = [],
+  group,
+  voteSession,
+  initialVotes,
+  initialTimeSlots = [],
   currentUserId,
 }: Props) {
   const router = useRouter();
-  const isMock = defaultGroup.id.startsWith("mock-");
 
-  // mock-new: sessionStorage에서 사용자 입력 데이터로 오버라이드
-  const [{ group, voteSession, initialVotes, initialTimeSlots }] = useState(() => {
-    if (defaultGroup.id !== "mock-new") {
-      return {
-        group: defaultGroup,
-        voteSession: defaultSession,
-        initialVotes: defaultVotes,
-        initialTimeSlots: defaultTimeSlots,
-      };
-    }
-    const saved = readMockNewData();
-    if (!saved) {
-      return {
-        group: defaultGroup,
-        voteSession: defaultSession,
-        initialVotes: defaultVotes,
-        initialTimeSlots: defaultTimeSlots,
-      };
-    }
-
-    const allMock = mockUsers;
-    const me = allMock.find((u) => u.id === mockCurrentUserId);
-    const selectedMembers: User[] = saved.memberIds
-      .map((id) => allMock.find((u) => u.id === id))
-      .filter((u): u is User => u !== undefined);
-    if (me && !selectedMembers.some((m) => m.id === me.id)) {
-      selectedMembers.unshift(me);
-    }
-
-    const newGroup: Group = {
-      ...defaultGroup,
-      name: saved.name,
-      members: selectedMembers.length > 0 ? selectedMembers : defaultGroup.members,
-    };
-
-    const newSession: VoteSession = {
-      id: "vs-new",
-      groupId: "mock-new",
-      candidateDates: saved.candidateDates,
-      deadline: saved.deadline ?? "",
-    };
-
-    return { group: newGroup, voteSession: newSession, initialVotes: [] as Vote[], initialTimeSlots: [] as TimeSlot[] };
-  });
-
-  // Realtime (production)
-  const { votes: realtimeVotes, timeSlots: realtimeTimeSlots } = useVoteRealtime(
+  const { votes, timeSlots: allTimeSlots } = useVoteRealtime(
     voteSession?.id ?? "",
     initialVotes,
     initialTimeSlots
   );
 
-  // Mock 로컬 상태
-  const [localVotes, setLocalVotes] = useState<Vote[]>(initialVotes);
-  const [localTimeSlots, setLocalTimeSlots] = useState<TimeSlot[]>(
-    initialTimeSlots
-  );
-  const [confirmed, setConfirmed] = useState(group.status === "confirmed");
-
-  const votes = isMock ? localVotes : realtimeVotes;
-  const allTimeSlots = isMock ? localTimeSlots : realtimeTimeSlots;
-
-  // 날짜 O/X 선택 상태: 현재 유저의 vote에서 파생
   const [dateChoices, setDateChoices] = useState<Record<string, VoteChoice | null>>(() => {
     const map: Record<string, VoteChoice | null> = {};
     if (voteSession) {
@@ -130,10 +54,7 @@ export function GroupDetailClient({
     return map;
   });
 
-  // 시간 슬롯 선택 (현재 유저의 것만)
-  const myInitialSlots = (isMock ? localTimeSlots : initialTimeSlots).filter(
-    (s) => s.userId === currentUserId
-  );
+  const myInitialSlots = initialTimeSlots.filter((s) => s.userId === currentUserId);
   const {
     state: selectionState,
     pendingStart,
@@ -143,7 +64,6 @@ export function GroupDetailClient({
     getSelectedRanges,
   } = useTimeSlotSelection(myInitialSlots);
 
-  // 날짜 토글 핸들러
   const handleDateToggle = useCallback(
     async (date: string) => {
       const current = dateChoices[date] ?? null;
@@ -153,39 +73,6 @@ export function GroupDetailClient({
 
       if (!voteSession) return;
 
-      if (isMock) {
-        if (next === null) {
-          // 미선택: 투표 제거
-          setLocalVotes((prev) =>
-            prev.filter((v) => !(v.userId === currentUserId && v.date === date))
-          );
-        } else {
-          setLocalVotes((prev) => {
-            const idx = prev.findIndex(
-              (v) => v.userId === currentUserId && v.date === date
-            );
-            if (idx >= 0) {
-              const updated = [...prev];
-              updated[idx] = { ...updated[idx], choice: next };
-              return updated;
-            }
-            return [
-              ...prev,
-              {
-                id: `local-${Date.now()}`,
-                sessionId: voteSession.id,
-                userId: currentUserId,
-                date,
-                choice: next,
-                comment: null,
-              },
-            ];
-          });
-        }
-        return;
-      }
-
-      // Production
       if (next === null) {
         // TODO: DELETE vote endpoint (not in current API — skip for MVP)
         return;
@@ -201,10 +88,9 @@ export function GroupDetailClient({
         body: JSON.stringify({ date, choice: next }),
       });
     },
-    [dateChoices, voteSession, isMock, currentUserId, votes]
+    [dateChoices, voteSession, currentUserId, votes]
   );
 
-  // 시간 슬롯 저장: 셀 클릭 후 rangeComplete로 돌아올 때마다 서버 동기화
   const handleTimeSlotClick = useCallback(
     (date: string, time: string) => {
       handleCellClick(date, time);
@@ -216,33 +102,6 @@ export function GroupDetailClient({
   useEffect(() => {
     if (selectionState !== "idle" || !voteSession) return;
 
-    if (isMock) {
-      // Mock: 로컬 time slots 갱신
-      const dates = voteSession.candidateDates;
-      const newSlots: TimeSlot[] = [];
-      for (const date of dates) {
-        const ranges = getSelectedRanges(date);
-        for (const range of ranges) {
-          newSlots.push({
-            id: `local-ts-${date}-${range.startTime}`,
-            sessionId: voteSession.id,
-            userId: currentUserId,
-            date,
-            startTime: range.startTime,
-            endTime: range.endTime,
-          });
-        }
-      }
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- mock 로컬 상태 동기화
-      setLocalTimeSlots((prev) => [
-        ...prev.filter((s) => s.userId !== currentUserId),
-        ...newSlots,
-      ]);
-      return;
-    }
-
-    // Production: PUT per changed date
-    // (Simplified — save all dates)
     const dates = voteSession.candidateDates;
     for (const date of dates) {
       const ranges = getSelectedRanges(date);
@@ -258,26 +117,18 @@ export function GroupDetailClient({
         }),
       });
     }
-  }, [selectionState, voteSession, isMock, currentUserId, getSelectedRanges]);
+  }, [selectionState, voteSession, currentUserId, getSelectedRanges]);
 
-  // 확정 핸들러
   const handleConfirm = useCallback(async () => {
     if (!voteSession) return;
     const bestDate = getBestDate(voteSession, votes);
     if (!bestDate) return;
 
-    const activeDates = voteSession.candidateDates.filter(
-      (d) => {
-        const v = votes.find((vote) => vote.date === d && vote.choice === "available");
-        return !!v;
-      }
-    );
+    const activeDates = voteSession.candidateDates.filter((d) => {
+      const v = votes.find((vote) => vote.date === d && vote.choice === "available");
+      return !!v;
+    });
     const best = getBestTimeSlot(allTimeSlots, activeDates);
-
-    if (isMock) {
-      setConfirmed(true);
-      return;
-    }
 
     await fetch(`/api/groups/${group.id}/confirm`, {
       method: "POST",
@@ -289,13 +140,13 @@ export function GroupDetailClient({
       }),
     });
     router.refresh();
-  }, [voteSession, votes, allTimeSlots, isMock, group.id, router]);
+  }, [voteSession, votes, allTimeSlots, group.id, router]);
 
-  // 파생 상태
   const bestDate = voteSession ? getBestDate(voteSession, votes) : null;
   const memberIds = group.members.map((m) => m.id);
   const allVoted = voteSession ? isAllVoted(voteSession, votes, memberIds) : false;
   const isHost = group.hostId === currentUserId;
+  const confirmed = group.status === "confirmed";
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleCopyLink = useCallback(async () => {
@@ -312,12 +163,10 @@ export function GroupDetailClient({
     : [];
   const bestTime = getBestTimeSlot(allTimeSlots, activeDates);
 
-  // 히트맵 표시: 전원 투표 완료 시
   const showHeatmap = allVoted && allTimeSlots.length > 0;
 
   return (
     <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
-      {/* 헤더 */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
         <button
           onClick={() => router.back()}
@@ -373,7 +222,6 @@ export function GroupDetailClient({
         </div>
       ) : voteSession ? (
         <>
-          {/* 날짜 선택 행 */}
           <div className="px-5 mt-4">
             <DateToggleRow
               dates={voteSession.candidateDates}
@@ -382,7 +230,6 @@ export function GroupDetailClient({
             />
           </div>
 
-          {/* 최적 시간대 배너 */}
           <BestTimeBanner
             date={bestTime?.date ?? null}
             startTime={bestTime?.startTime ?? null}
@@ -391,7 +238,6 @@ export function GroupDetailClient({
             totalMembers={group.members.length}
           />
 
-          {/* 시간 그리드 */}
           <TimeGrid
             dates={voteSession.candidateDates}
             dateChoices={dateChoices}
@@ -404,10 +250,8 @@ export function GroupDetailClient({
             onDragCommit={commitSweptSlots}
           />
 
-          {/* 코멘트 */}
           <CommentSection votes={votes} members={group.members} />
 
-          {/* 확정 버튼 */}
           <StickyConfirmButton
             allVoted={allVoted}
             isHost={isHost}
