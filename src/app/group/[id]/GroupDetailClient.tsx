@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { DateToggleRow } from "@/components/vote/DateToggleRow";
 import { BestTimeBanner } from "@/components/vote/BestTimeBanner";
 import { TimeGrid } from "@/components/vote/TimeGrid";
-import { StickyConfirmButton } from "@/components/vote/StickyConfirmButton";
+import { VoteActionBar } from "@/components/vote/VoteActionBar";
+import { WelcomeVoteBanner } from "@/components/vote/WelcomeVoteBanner";
 import { CommentSection } from "@/components/vote/CommentSection";
 import { useVoteRealtime } from "@/hooks/useVoteRealtime";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
@@ -54,14 +55,18 @@ export function GroupDetailClient({
     return map;
   });
 
-  const myInitialSlots = initialTimeSlots.filter((s) => s.userId === currentUserId);
+  const myInitialSlots = useMemo(
+    () => initialTimeSlots.filter((s) => s.userId === currentUserId),
+    [initialTimeSlots, currentUserId]
+  );
   const {
-    state: selectionState,
     pendingStart,
     handleCellClick,
     commitSweptSlots,
     isSlotSelected,
     getSelectedRanges,
+    rangesByDate,
+    pendingPersist,
   } = useTimeSlotSelection(myInitialSlots);
 
   const handleDateToggle = useCallback(
@@ -98,14 +103,19 @@ export function GroupDetailClient({
     [handleCellClick]
   );
 
-  // selectionState가 idle로 돌아오면 (range 완성 or 해제 후) 서버에 저장
+  // 사용자가 시간 슬롯을 직접 변경했을 때만 (마운트 시점 PUT 발사 X) 서버에 저장.
+  // pendingPersist.nonce는 사용자 액션이 있을 때만 증가한다.
+  const lastPersistedNonce = useRef(0);
   useEffect(() => {
-    if (selectionState !== "idle" || !voteSession) return;
+    if (!voteSession) return;
+    if (pendingPersist.nonce === 0) return;
+    if (pendingPersist.nonce === lastPersistedNonce.current) return;
+    lastPersistedNonce.current = pendingPersist.nonce;
 
-    const dates = voteSession.candidateDates;
-    for (const date of dates) {
+    const sessionId = voteSession.id;
+    for (const date of pendingPersist.dates) {
       const ranges = getSelectedRanges(date);
-      fetch(`/api/vote-sessions/${voteSession.id}/time-slots`, {
+      fetch(`/api/vote-sessions/${sessionId}/time-slots`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,18 +127,54 @@ export function GroupDetailClient({
         }),
       });
     }
-  }, [selectionState, voteSession, currentUserId, getSelectedRanges]);
+  }, [pendingPersist, voteSession, getSelectedRanges]);
+
+  const handleMyVoteSave = useCallback(async () => {
+    if (!voteSession) return;
+
+    const datePromises = Object.entries(dateChoices)
+      .filter(([, choice]) => choice !== null)
+      .map(([date, choice]) => {
+        const existing = votes.find(
+          (v) => v.userId === currentUserId && v.date === date
+        );
+        const method = existing ? "PATCH" : "POST";
+        return fetch(`/api/vote-sessions/${voteSession.id}/votes`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date, choice }),
+        });
+      });
+
+    const slotPromises = voteSession.candidateDates.map((date) => {
+      const ranges = getSelectedRanges(date);
+      return fetch(`/api/vote-sessions/${voteSession.id}/time-slots`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date,
+          slots: ranges.map((r) => ({
+            startTime: r.startTime,
+            endTime: r.endTime,
+          })),
+        }),
+      });
+    });
+
+    await Promise.all([...datePromises, ...slotPromises]);
+  }, [voteSession, dateChoices, votes, currentUserId, getSelectedRanges]);
 
   const handleConfirm = useCallback(async () => {
     if (!voteSession) return;
     const bestDate = getBestDate(voteSession, votes);
     if (!bestDate) return;
 
-    const activeDates = voteSession.candidateDates.filter((d) => {
+    const confirmActiveDates = voteSession.candidateDates.filter((d) => {
       const v = votes.find((vote) => vote.date === d && vote.choice === "available");
       return !!v;
     });
-    const best = getBestTimeSlot(allTimeSlots, activeDates);
+    // confirm 시에는 서버에 반영된 데이터(allTimeSlots)만 본다 — 다른 멤버 기준으로 best slot을 결정.
+    const best = getBestTimeSlot(allTimeSlots, confirmActiveDates);
 
     await fetch(`/api/groups/${group.id}/confirm`, {
       method: "POST",
@@ -161,8 +207,32 @@ export function GroupDetailClient({
         return choice === "available";
       })
     : [];
-  const rankedSlots = getRankedTimeSlots(allTimeSlots, activeDates, 2);
+
+  // 본인의 로컬 selection을 즉시 timeslot 형태로 합쳐 히트맵·랭킹에 반영한다.
+  // 서버 라운드트립을 기다리지 않으므로 자기 화면에서 색이 즉시 칠해진다.
+  const effectiveTimeSlots = useMemo<TimeSlot[]>(() => {
+    if (!voteSession) return allTimeSlots;
+    const others = allTimeSlots.filter((s) => s.userId !== currentUserId);
+    const mine: TimeSlot[] = [];
+    for (const date of voteSession.candidateDates) {
+      const ranges = rangesByDate[date] ?? [];
+      ranges.forEach((r, idx) => {
+        mine.push({
+          id: `local-${date}-${idx}`,
+          sessionId: voteSession.id,
+          userId: currentUserId,
+          date,
+          startTime: r.startTime,
+          endTime: r.endTime,
+        });
+      });
+    }
+    return [...others, ...mine];
+  }, [allTimeSlots, rangesByDate, voteSession, currentUserId]);
+
+  const rankedSlots = getRankedTimeSlots(effectiveTimeSlots, activeDates, 2);
   const bestTime = rankedSlots[0] ?? null;
+  const hasMyVotes = Object.values(dateChoices).some((c) => c !== null);
 
   return (
     <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
@@ -221,6 +291,7 @@ export function GroupDetailClient({
         </div>
       ) : voteSession ? (
         <>
+          <WelcomeVoteBanner />
           <div className="px-5 mt-4">
             <DateToggleRow
               dates={voteSession.candidateDates}
@@ -239,7 +310,7 @@ export function GroupDetailClient({
             dateChoices={dateChoices}
             isSlotSelected={isSlotSelected}
             pendingStart={pendingStart}
-            allTimeSlots={allTimeSlots}
+            allTimeSlots={effectiveTimeSlots}
             totalMembers={group.members.length}
             onCellClick={handleTimeSlotClick}
             onDragCommit={commitSweptSlots}
@@ -247,9 +318,11 @@ export function GroupDetailClient({
 
           <CommentSection votes={votes} members={group.members} />
 
-          <StickyConfirmButton
-            allVoted={allVoted}
+          <VoteActionBar
+            hasMyVotes={hasMyVotes}
             isHost={isHost}
+            allVoted={allVoted}
+            onSaveMyVote={handleMyVoteSave}
             onConfirm={handleConfirm}
           />
         </>

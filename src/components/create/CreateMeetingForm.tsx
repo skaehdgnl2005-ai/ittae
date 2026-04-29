@@ -57,11 +57,11 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
 
       if (!sessionRes.ok) {
         // 투표 세션 생성 실패 시에도 그룹 페이지로 이동
-        router.push(`/group/${group.id}`);
+        router.push(`/group/${group.id}?welcome=1`);
         return;
       }
 
-      router.push(`/group/${group.id}`);
+      router.push(`/group/${group.id}?welcome=1`);
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
     } finally {

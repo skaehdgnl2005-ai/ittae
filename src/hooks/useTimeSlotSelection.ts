@@ -61,9 +61,21 @@ function mergeRanges(ranges: Range[]): Range[] {
   return merged;
 }
 
+export type PendingPersist = { dates: string[]; nonce: number };
+
 export function useTimeSlotSelection(initialSlots: TimeSlot[] = []) {
   const [state, setState] = useState<SelectionState>("idle");
   const [pendingStart, setPendingStart] = useState<PendingStart>(null);
+
+  // 변경된 date들과 단조 증가하는 nonce. 마운트 직후엔 nonce=0이라 외부에서 무시됨.
+  const [pendingPersist, setPendingPersist] = useState<PendingPersist>({
+    dates: [],
+    nonce: 0,
+  });
+  const markDirty = useCallback((dates: string[]) => {
+    if (dates.length === 0) return;
+    setPendingPersist((prev) => ({ dates, nonce: prev.nonce + 1 }));
+  }, []);
 
   // 날짜별 선택된 범위들
   const [rangesByDate, setRangesByDate] = useState<Record<string, Range[]>>(
@@ -106,6 +118,7 @@ export function useTimeSlotSelection(initialSlots: TimeSlot[] = []) {
         }));
         setState("idle");
         setPendingStart(null);
+        markDirty([date]);
         return;
       }
 
@@ -148,37 +161,43 @@ export function useTimeSlotSelection(initialSlots: TimeSlot[] = []) {
         }));
         setState("idle");
         setPendingStart(null);
+        markDirty([date]);
       }
     },
-    [state, pendingStart, rangesByDate]
+    [state, pendingStart, rangesByDate, markDirty]
   );
 
   /** 드래그 스윕 결과를 ranges로 변환 후 기존 ranges와 병합 */
-  const commitSweptSlots = useCallback((slotIds: string[]) => {
-    if (slotIds.length === 0) return;
-    const byDate: Record<string, string[]> = {};
-    for (const id of slotIds) {
-      const sepIdx = id.indexOf("T");
-      if (sepIdx < 0) continue;
-      const date = id.slice(0, sepIdx);
-      const time = id.slice(sepIdx + 1);
-      if (!byDate[date]) byDate[date] = [];
-      byDate[date].push(time);
-    }
-
-    setRangesByDate((prev) => {
-      const next = { ...prev };
-      for (const date of Object.keys(byDate)) {
-        const sortedTimes = byDate[date].slice().sort();
-        const newRanges = timesToRanges(sortedTimes);
-        const existing = prev[date] ?? [];
-        next[date] = mergeRanges([...existing, ...newRanges]);
+  const commitSweptSlots = useCallback(
+    (slotIds: string[]) => {
+      if (slotIds.length === 0) return;
+      const byDate: Record<string, string[]> = {};
+      for (const id of slotIds) {
+        const sepIdx = id.indexOf("T");
+        if (sepIdx < 0) continue;
+        const date = id.slice(0, sepIdx);
+        const time = id.slice(sepIdx + 1);
+        if (!byDate[date]) byDate[date] = [];
+        byDate[date].push(time);
       }
-      return next;
-    });
-    setState("idle");
-    setPendingStart(null);
-  }, []);
+
+      const changedDates = Object.keys(byDate);
+      setRangesByDate((prev) => {
+        const next = { ...prev };
+        for (const date of changedDates) {
+          const sortedTimes = byDate[date].slice().sort();
+          const newRanges = timesToRanges(sortedTimes);
+          const existing = prev[date] ?? [];
+          next[date] = mergeRanges([...existing, ...newRanges]);
+        }
+        return next;
+      });
+      setState("idle");
+      setPendingStart(null);
+      markDirty(changedDates);
+    },
+    [markDirty]
+  );
 
   /** 외부 데이터로 범위 리셋 (realtime 업데이트 시 사용) */
   const resetFromSlots = useCallback((slots: TimeSlot[]) => {
@@ -202,5 +221,6 @@ export function useTimeSlotSelection(initialSlots: TimeSlot[] = []) {
     isSlotSelected,
     resetFromSlots,
     rangesByDate,
+    pendingPersist,
   };
 }

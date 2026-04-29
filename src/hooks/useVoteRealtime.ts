@@ -33,13 +33,18 @@ export function useVoteRealtime(
         },
         (payload: RealtimePostgresChangesPayload<VoteRow>) => {
           if (payload.eventType === "INSERT") {
-            setVotes((prev) => [...prev, mapVote(payload.new)]);
-          } else if (payload.eventType === "UPDATE") {
+            const incoming = mapVote(payload.new);
             setVotes((prev) =>
-              prev.map((v) =>
-                v.id === payload.new.id ? mapVote(payload.new) : v
-              )
+              prev.some((v) => v.id === incoming.id) ? prev : [...prev, incoming]
             );
+          } else if (payload.eventType === "UPDATE") {
+            const updated = mapVote(payload.new);
+            setVotes((prev) => {
+              const exists = prev.some((v) => v.id === updated.id);
+              return exists
+                ? prev.map((v) => (v.id === updated.id ? updated : v))
+                : [...prev, updated];
+            });
           } else if (payload.eventType === "DELETE") {
             setVotes((prev) =>
               prev.filter((v) => v.id !== payload.old.id)
@@ -56,14 +61,34 @@ export function useVoteRealtime(
           filter: `session_id=eq.${sessionId}`,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          type TimeSlotRow = {
+            id: string;
+            session_id: string;
+            user_id: string;
+            date: string;
+            start_time: string;
+            end_time: string;
+          };
+
           if (payload.eventType === "INSERT") {
-            const row = payload.new as { id: string; session_id: string; user_id: string; date: string; start_time: string; end_time: string };
-            setTimeSlots((prev) => [...prev, mapTimeSlot(row)]);
+            const row = payload.new as TimeSlotRow;
+            const incoming = mapTimeSlot(row);
+            // 같은 id 중복 INSERT 방지 (서버 fetch + realtime 동시 도착 시).
+            setTimeSlots((prev) =>
+              prev.some((s) => s.id === incoming.id) ? prev : [...prev, incoming]
+            );
+          } else if (payload.eventType === "UPDATE") {
+            const row = payload.new as TimeSlotRow;
+            const updated = mapTimeSlot(row);
+            setTimeSlots((prev) => {
+              const exists = prev.some((s) => s.id === updated.id);
+              return exists
+                ? prev.map((s) => (s.id === updated.id ? updated : s))
+                : [...prev, updated];
+            });
           } else if (payload.eventType === "DELETE") {
             const old = payload.old as { id: string };
-            setTimeSlots((prev) =>
-              prev.filter((s) => s.id !== old.id)
-            );
+            setTimeSlots((prev) => prev.filter((s) => s.id !== old.id));
           }
         }
       )
