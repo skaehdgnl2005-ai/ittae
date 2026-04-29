@@ -1,0 +1,64 @@
+<h2>시간표 결과 표시 방식</h2>
+<p class="subtitle">모든 멤버가 투표 완료 후, 겹치는 시간대를 어떻게 보여줄지 골라주세요</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>히트맵 그리드</h3>
+      <p>when2meet처럼 겹치는 인원 수에 따라 셀 색상 농도가 달라지는 방식. 진한 보라 = 전원 가능, 연한 보라 = 일부 가능, 회색 = 불가능.</p>
+      <div style="display:flex;gap:6px;margin-top:12px;align-items:end;">
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+          <div style="width:40px;height:24px;background:#ede9fe;border-radius:4px;"></div>
+          <span style="font-size:11px;color:#888;">1명</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+          <div style="width:40px;height:24px;background:#c4b5fd;border-radius:4px;"></div>
+          <span style="font-size:11px;color:#888;">2명</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+          <div style="width:40px;height:24px;background:#8b5cf6;border-radius:4px;"></div>
+          <span style="font-size:11px;color:#888;">3명</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+          <div style="width:40px;height:24px;background:#6d28d9;border-radius:4px;"></div>
+          <span style="font-size:11px;color:#888;">4명</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>최적 구간 하이라이트</h3>
+      <p>히트맵 없이, 전원(또는 최다 인원)이 겹치는 구간만 강조 표시. 나머지는 단순 O/X 표시. 더 깔끔하지만 세부 정보가 적음.</p>
+      <div style="margin-top:12px;padding:10px 14px;background:#f5f3ff;border-left:3px solid #7c3aed;border-radius:4px;font-size:13px;color:#4c1d95;">
+        ⭐ 4/26(토) 14:00~16:00 — 4명 전원 가능
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>히트맵 + 최적 구간 배너</h3>
+      <p>A와 B를 합친 방식. 그리드에서 전체 겹침 현황을 히트맵으로 보여주고, 상단에 최적 구간을 배너로 요약 표시.</p>
+      <div style="margin-top:12px;">
+        <div style="padding:8px 12px;background:#f5f3ff;border-radius:6px;font-size:12px;color:#4c1d95;margin-bottom:8px;">
+          ⭐ 4/26(토) 14:00~16:00 — 전원 가능
+        </div>
+        <div style="display:flex;gap:2px;">
+          <div style="width:28px;height:16px;background:#ede9fe;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#c4b5fd;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#8b5cf6;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#6d28d9;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#6d28d9;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#8b5cf6;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#c4b5fd;border-radius:2px;"></div>
+          <div style="width:28px;height:16px;background:#ede9fe;border-radius:2px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

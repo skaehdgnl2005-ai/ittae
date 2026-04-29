@@ -28,7 +28,6 @@
       "Bash(wget:*)"
     ]
   },
-  "model": "claude-opus-4-6",
   "effort": "high",
   "hooks": {
     "PostToolUse": [

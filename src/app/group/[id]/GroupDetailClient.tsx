@@ -164,8 +164,6 @@ export function GroupDetailClient({
   const rankedSlots = getRankedTimeSlots(allTimeSlots, activeDates, 2);
   const bestTime = rankedSlots[0] ?? null;
 
-  const showHeatmap = allVoted && allTimeSlots.length > 0;
-
   return (
     <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
       <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
@@ -243,7 +241,6 @@ export function GroupDetailClient({
             pendingStart={pendingStart}
             allTimeSlots={allTimeSlots}
             totalMembers={group.members.length}
-            showHeatmap={showHeatmap}
             onCellClick={handleTimeSlotClick}
             onDragCommit={commitSweptSlots}
           />

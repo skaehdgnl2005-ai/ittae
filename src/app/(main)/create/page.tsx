@@ -1,7 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { mapUser } from "@/lib/mappers";
 import { CreateMeetingForm } from "@/components/create/CreateMeetingForm";
-import { mockUsers, mockCurrentUserId } from "@/lib/mock";
 import type { User } from "@/types";
 
 export default async function CreatePage() {
@@ -32,11 +31,6 @@ export default async function CreatePage() {
       .select("*")
       .in("id", friendIds);
     friends = (usersData ?? []).map(mapUser);
-  }
-
-  // DB에 친구가 없으면 시연용 mock 데이터로 폴백
-  if (friends.length === 0) {
-    friends = mockUsers.filter((u) => u.id !== mockCurrentUserId);
   }
 
   return (

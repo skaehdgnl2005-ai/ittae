@@ -1,7 +1,6 @@
 ---
 name: reviewer
 description: 코드 변경사항을 리뷰하고 디자인 시스템 준수 여부를 확인하는 전문 리뷰어
-model: claude-sonnet-4-6
 context: fork
 allowed-tools:
   - Read

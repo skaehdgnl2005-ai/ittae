@@ -37,17 +37,7 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
       });
 
       if (!groupRes.ok) {
-        // API 실패 시 입력 데이터 저장 후 mock 그룹으로 이동
-        sessionStorage.setItem(
-          "mock-new-group",
-          JSON.stringify({
-            name: name.trim(),
-            memberIds,
-            candidateDates,
-            deadline: deadline || null,
-          })
-        );
-        router.push("/group/mock-new");
+        setError("모임을 만들지 못했어요. 잠시 후 다시 시도해주세요.");
         return;
       }
 
@@ -73,17 +63,7 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
 
       router.push(`/group/${group.id}`);
     } catch {
-      // 네트워크 에러 등 → 입력 데이터 저장 후 mock 그룹으로 폴백
-      sessionStorage.setItem(
-        "mock-new-group",
-        JSON.stringify({
-          name: name.trim(),
-          memberIds,
-          candidateDates,
-          deadline: deadline || null,
-        })
-      );
-      router.push("/group/mock-new");
+      setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }

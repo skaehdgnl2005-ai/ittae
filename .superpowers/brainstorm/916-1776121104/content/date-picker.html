@@ -1,0 +1,78 @@
+<h2>후보 날짜 선택 방식</h2>
+<p class="subtitle">복수의 후보 날짜를 고르는 UI. 어느 방식이 더 자연스러운가요?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="calendar" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8f7ff;border-radius:12px;padding:14px;font-family:sans-serif">
+        <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;text-align:center">2026년 4월 · 여러 날 탭해서 선택</div>
+        <!-- mini calendar -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">
+          <div style="font-size:9px;color:#9ca3af;padding:2px">일</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">월</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">화</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">수</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">목</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">금</div>
+          <div style="font-size:9px;color:#9ca3af;padding:2px">토</div>
+          <!-- row1 blank + days -->
+          <div></div><div></div><div style="font-size:10px;padding:3px">1</div><div style="font-size:10px;padding:3px">2</div><div style="font-size:10px;padding:3px">3</div><div style="font-size:10px;padding:3px">4</div><div style="font-size:10px;padding:3px">5</div>
+          <div style="font-size:10px;padding:3px">6</div><div style="font-size:10px;padding:3px">7</div><div style="font-size:10px;padding:3px">8</div><div style="font-size:10px;padding:3px">9</div><div style="font-size:10px;padding:3px">10</div><div style="font-size:10px;padding:3px">11</div><div style="font-size:10px;padding:3px">12</div>
+          <div style="font-size:10px;padding:3px">13</div><div style="font-size:10px;padding:3px">14</div><div style="font-size:10px;padding:3px">15</div>
+          <!-- selected dates -->
+          <div style="font-size:10px;padding:3px;background:#7c3aed;color:#fff;border-radius:50%">16</div>
+          <div style="font-size:10px;padding:3px">17</div>
+          <div style="font-size:10px;padding:3px">18</div>
+          <div style="font-size:10px;padding:3px">19</div>
+          <div style="font-size:10px;padding:3px">20</div>
+          <div style="font-size:10px;padding:3px;background:#7c3aed;color:#fff;border-radius:50%">21</div>
+          <div style="font-size:10px;padding:3px;background:#7c3aed;color:#fff;border-radius:50%">22</div>
+          <div style="font-size:10px;padding:3px">23</div>
+          <div style="font-size:10px;padding:3px">24</div><div style="font-size:10px;padding:3px">25</div><div style="font-size:10px;padding:3px">26</div><div style="font-size:10px;padding:3px">27</div>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+          <div style="background:#ede9fe;color:#7c3aed;font-size:10px;border-radius:20px;padding:3px 8px">4/16 수 ×</div>
+          <div style="background:#ede9fe;color:#7c3aed;font-size:10px;border-radius:20px;padding:3px 8px">4/21 월 ×</div>
+          <div style="background:#ede9fe;color:#7c3aed;font-size:10px;border-radius:20px;padding:3px 8px">4/22 화 ×</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 인라인 미니 캘린더</h3>
+      <p>폼 안에 캘린더 내장. 날짜를 탭하면 선택/해제. 직관적이고 날짜 감각이 명확함.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="chips" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8f7ff;border-radius:12px;padding:14px;font-family:sans-serif">
+        <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px">후보 날짜</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          <div style="background:#ede9fe;color:#7c3aed;font-size:11px;border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:4px">
+            4/16 수 <span style="font-size:10px">×</span>
+          </div>
+          <div style="background:#ede9fe;color:#7c3aed;font-size:11px;border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:4px">
+            4/21 월 <span style="font-size:10px">×</span>
+          </div>
+          <div style="background:#ede9fe;color:#7c3aed;font-size:11px;border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:4px">
+            4/22 화 <span style="font-size:10px">×</span>
+          </div>
+        </div>
+        <!-- add button -->
+        <div style="border:1.5px dashed #a78bfa;border-radius:8px;padding:10px;text-align:center;color:#7c3aed;font-size:11px;font-weight:600">
+          + 날짜 추가
+        </div>
+        <!-- date picker popup hint -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-top:6px;font-size:10px;color:#6b7280;text-align:center">
+          ↑ 탭하면 OS 네이티브 날짜 선택창 열림
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 칩 + 날짜 추가 버튼</h3>
+      <p>선택된 날짜가 칩으로 표시. "날짜 추가" 버튼 탭 시 네이티브 date picker 열림. 심플하고 폼 길이가 짧음.</p>
+    </div>
+  </div>
+
+</div>

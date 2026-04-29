@@ -6,7 +6,7 @@ export default function LoginPage() {
       {/* 앱 아이덴티티 */}
       <div className="text-center mb-14">
         <h1 className="font-serif text-[56px] leading-none text-gray-900 dark:text-gray-50 mb-4">
-          이때
+          된다
         </h1>
         <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
           친구들과 일정을 맞추고

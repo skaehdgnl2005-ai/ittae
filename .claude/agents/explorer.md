@@ -1,7 +1,6 @@
 ---
 name: explorer
 description: 코드베이스를 탐색하여 구조, 패턴, 의존성을 분석한다. 새 기능 구현 전 컨텍스트 파악용.
-model: claude-sonnet-4-6
 context: fork
 agent: Explore
 ---

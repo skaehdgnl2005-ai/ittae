@@ -11,7 +11,6 @@ type TimeColumnProps = {
   previewSlots: Set<string>;
   heatmap: Record<string, number>;
   totalMembers: number;
-  showHeatmap: boolean;
   onCellClick: (date: string, time: string) => void;
 };
 
@@ -28,7 +27,6 @@ export function TimeColumn({
   previewSlots,
   heatmap,
   totalMembers,
-  showHeatmap,
   onCellClick,
 }: TimeColumnProps) {
   return (
@@ -50,7 +48,6 @@ export function TimeColumn({
             isPreview={previewSlots.has(`${date}T${time}`)}
             heatCount={heatmap[time] ?? 0}
             totalMembers={totalMembers}
-            showHeatmap={showHeatmap}
             onClick={() => onCellClick(date, time)}
           />
         ))}

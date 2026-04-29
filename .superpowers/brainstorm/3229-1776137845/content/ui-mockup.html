@@ -1,0 +1,198 @@
+<h2>투표 화면 UI 설계</h2>
+<p class="subtitle">단일 통합 뷰 — 날짜 O/X + 시간표 그리드</p>
+
+<div class="mockup">
+  <div class="mockup-header">모임 투표 화면 (375px 모바일)</div>
+  <div class="mockup-body" style="background:#fafafa;padding:0;max-width:375px;margin:0 auto;">
+
+    <!-- Best Time Banner -->
+    <div style="background:#f5f3ff;padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #ede9fe;">
+      <span style="font-size:14px;">⭐</span>
+      <span style="font-size:13px;color:#4c1d95;font-weight:500;">4/26(토) 14:00~16:00 — 4명 전원 가능</span>
+    </div>
+
+    <!-- Date O/X Row -->
+    <div style="padding:12px 16px;border-bottom:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;letter-spacing:0.5px;">날짜 선택</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;">
+        <!-- O selected -->
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:11px;color:#666;">4/25</div>
+          <div style="font-size:11px;color:#666;">금</div>
+          <div style="width:40px;height:40px;border-radius:8px;background:#7c3aed;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer;">O</div>
+        </div>
+        <!-- O selected -->
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:11px;color:#666;">4/26</div>
+          <div style="font-size:11px;color:#666;">토</div>
+          <div style="width:40px;height:40px;border-radius:8px;background:#7c3aed;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer;">O</div>
+        </div>
+        <!-- X selected -->
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:11px;color:#666;">4/27</div>
+          <div style="font-size:11px;color:#666;">일</div>
+          <div style="width:40px;height:40px;border-radius:8px;background:#d1d5db;color:#6b7280;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer;">X</div>
+        </div>
+        <!-- Unvoted -->
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:11px;color:#666;">4/28</div>
+          <div style="font-size:11px;color:#666;">월</div>
+          <div style="width:40px;height:40px;border-radius:8px;background:white;border:2px dashed #d1d5db;color:#9ca3af;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time Grid -->
+    <div style="padding:12px 0;">
+      <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;letter-spacing:0.5px;padding:0 16px;">시간 선택 <span style="font-weight:400;color:#aaa;">· 양끝 클릭으로 구간 선택</span></div>
+
+      <div style="display:flex;padding:0 16px;">
+        <!-- Time labels -->
+        <div style="flex-shrink:0;width:44px;display:flex;flex-direction:column;">
+          <div style="height:28px;"></div><!-- header spacer -->
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">12:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">12:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">13:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">13:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">14:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">14:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">15:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">15:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">16:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">16:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">17:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">17:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">18:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">18:30</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">19:00</div>
+          <div style="height:28px;font-size:10px;color:#999;display:flex;align-items:center;">19:30</div>
+        </div>
+
+        <!-- Date columns -->
+        <div style="flex:1;display:flex;gap:4px;overflow-x:auto;">
+          <!-- 4/25 (O) - with selection -->
+          <div style="flex:1;min-width:60px;">
+            <div style="height:28px;text-align:center;font-size:11px;color:#4c1d95;font-weight:600;">4/25</div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <!-- selected range 14:00~16:00 -->
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <!-- selected range 18:00~19:00 -->
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+          </div>
+
+          <!-- 4/26 (O) - with selection -->
+          <div style="flex:1;min-width:60px;">
+            <div style="height:28px;text-align:center;font-size:11px;color:#4c1d95;font-weight:600;">4/26</div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <!-- selected range 14:00~17:00 -->
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#8b5cf6;border:1px solid #7c3aed;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+          </div>
+
+          <!-- 4/27 (X) - disabled -->
+          <div style="flex:1;min-width:60px;opacity:0.35;">
+            <div style="height:28px;text-align:center;font-size:11px;color:#9ca3af;font-weight:600;">4/27</div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#e5e7eb;border-radius:2px;margin-bottom:1px;"></div>
+          </div>
+
+          <!-- 4/28 (unvoted) -->
+          <div style="flex:1;min-width:60px;opacity:0.35;">
+            <div style="height:28px;text-align:center;font-size:11px;color:#9ca3af;font-weight:600;">4/28</div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+            <div style="height:28px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:2px;margin-bottom:1px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interaction hint -->
+      <div style="margin-top:12px;padding:8px 16px;">
+        <div style="background:#fefce8;padding:8px 12px;border-radius:8px;font-size:12px;color:#854d0e;display:flex;align-items:center;gap:6px;">
+          <span>💡</span>
+          <span>시작 시간 클릭 → 끝 시간 클릭으로 구간을 선택하세요</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky Confirm -->
+    <div style="padding:12px 16px;border-top:1px solid #e5e7eb;background:white;">
+      <button style="width:100%;padding:12px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">투표 완료</button>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:24px;">
+  <h3>인터랙션 설명</h3>
+  <div style="display:grid;gap:12px;margin-top:12px;">
+    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border-left:3px solid #7c3aed;">
+      <strong style="font-size:13px;">날짜 O/X 토글</strong>
+      <p style="font-size:12px;color:#666;margin-top:4px;">각 날짜 버튼을 탭하면 미선택 → O → X 순환. O 날짜만 시간표 열이 활성화됨.</p>
+    </div>
+    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border-left:3px solid #7c3aed;">
+      <strong style="font-size:13px;">양끝 클릭 시간 선택</strong>
+      <p style="font-size:12px;color:#666;margin-top:4px;">활성 열에서 시작 슬롯 클릭 → 끝 슬롯 클릭 → 사이 구간 자동 선택 (보라색). 하루에 여러 구간 가능.</p>
+    </div>
+    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border-left:3px solid #7c3aed;">
+      <strong style="font-size:13px;">구간 해제</strong>
+      <p style="font-size:12px;color:#666;margin-top:4px;">이미 선택된 구간의 아무 슬롯을 클릭하면 해당 구간 전체 해제.</p>
+    </div>
+    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border-left:3px solid #7c3aed;">
+      <strong style="font-size:13px;">결과 히트맵 모드</strong>
+      <p style="font-size:12px;color:#666;margin-top:4px;">전원 투표 완료 시 셀 색상이 겹침 인원 수에 따라 농도 변화. 상단 배너에 최적 구간 자동 표시.</p>
+    </div>
+  </div>
+</div>

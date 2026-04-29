@@ -14,7 +14,6 @@ type TimeGridProps = {
   pendingStart: { date: string; time: string } | null;
   allTimeSlots: TimeSlot[];
   totalMembers: number;
-  showHeatmap: boolean;
   onCellClick: (date: string, time: string) => void;
   onDragCommit: (slotIds: string[]) => void;
 };
@@ -26,7 +25,6 @@ export function TimeGrid({
   pendingStart,
   allTimeSlots,
   totalMembers,
-  showHeatmap,
   onCellClick,
   onDragCommit,
 }: TimeGridProps) {
@@ -37,7 +35,6 @@ export function TimeGrid({
   });
 
   const previewSlots = useMemo(() => new Set(previewIds), [previewIds]);
-  const dragEnabled = !showHeatmap;
 
   return (
     <div className="mx-5 mt-3">
@@ -59,20 +56,17 @@ export function TimeGrid({
 
         {/* 날짜별 시간 열 */}
         <div
-          ref={dragEnabled ? bindTarget : undefined}
+          ref={bindTarget}
           className={cn(
-            "flex flex-1 gap-1 select-none",
-            dragEnabled && "touch-pan-y",
+            "flex flex-1 gap-1 select-none touch-pan-y",
             isDragging && "touch-none cursor-grabbing"
           )}
-          {...(dragEnabled ? handlers : {})}
+          {...handlers}
         >
           {dates.map((date) => {
             const choice = dateChoices[date];
             const disabled = choice !== "available";
-            const heatmap = showHeatmap
-              ? getTimeSlotHeatmap(allTimeSlots, date)
-              : {};
+            const heatmap = getTimeSlotHeatmap(allTimeSlots, date);
 
             return (
               <div key={date} className="flex-1">
@@ -84,7 +78,6 @@ export function TimeGrid({
                   previewSlots={previewSlots}
                   heatmap={heatmap}
                   totalMembers={totalMembers}
-                  showHeatmap={showHeatmap}
                   onCellClick={onCellClick}
                 />
               </div>
