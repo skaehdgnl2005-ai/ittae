@@ -1,7 +1,23 @@
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { mapUser, mapGroup, mapPublicUser } from "@/lib/mappers";
 import { FriendsView } from "@/components/friends/FriendsView";
 import type { User, Group, PendingFriendRequest } from "@/types";
+import type { Database } from "@/types/supabase";
+
+type UserRow = Database["public"]["Tables"]["users"]["Row"];
+type GroupRow = Database["public"]["Tables"]["groups"]["Row"];
+type GroupMemberRow = { group_id: string; user_id: string };
+type RequesterRow = {
+  id: string;
+  nickname: string;
+  profile_image_url: string | null;
+  status_message: string | null;
+};
+
+function emptyResult<T>(): { data: T[] | null } {
+  return { data: null };
+}
 
 export default async function FriendsPage() {
   const supabase = await createServerClient();
@@ -9,132 +25,149 @@ export default async function FriendsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let friends: User[] = [];
-  let groups: Group[] = [];
-  let pendingRequests: PendingFriendRequest[] = [];
-  let myInviteCode = "";
-  let myNickname = "";
+  if (!user) {
+    return (
+      <FriendsView
+        friends={[]}
+        groups={[]}
+        pendingRequests={[]}
+        myInviteCode=""
+        myNickname=""
+      />
+    );
+  }
 
-  if (user) {
-    // 본인 프로필 (invite_code, nickname)
-    const { data: me } = await supabase
+  // Stage 1: user.id만 있으면 되는 모든 쿼리를 한 번에 발사.
+  // 이전엔 직렬 await으로 4번 RTT가 깔렸음 → 1번으로 압축.
+  const [
+    { data: me },
+    { data: receivedPending },
+    { data: sent },
+    { data: received },
+    { data: myMemberships },
+  ] = await Promise.all([
+    supabase
       .from("users")
       .select("invite_code, nickname")
       .eq("id", user.id)
-      .maybeSingle();
-    myInviteCode = me?.invite_code ?? "";
-    myNickname = me?.nickname ?? "";
-
-    // 받은 pending 요청
-    const { data: receivedPending } = await supabase
+      .maybeSingle(),
+    supabase
       .from("friendships")
       .select("requester_id, created_at")
       .eq("receiver_id", user.id)
       .eq("status", "pending")
-      .order("created_at", { ascending: false });
-
-    if (receivedPending && receivedPending.length > 0) {
-      const requesterIds = receivedPending.map((r) => r.requester_id);
-      // RLS상 자기/친구만 보이므로, 친구가 아닌 요청자는 안 보일 수 있음.
-      // → server side에서만 admin client로 채우기
-      const { createAdminClient } = await import("@/lib/supabase/admin");
-      const admin = createAdminClient();
-      const { data: requesters } = await admin
-        .from("users")
-        .select("id, nickname, profile_image_url, status_message")
-        .in("id", requesterIds);
-
-      const requesterMap = new Map(
-        (requesters ?? []).map((u) => [u.id, mapPublicUser(u)])
-      );
-
-      pendingRequests = receivedPending
-        .map((r) => {
-          const pu = requesterMap.get(r.requester_id);
-          if (!pu) return null;
-          return {
-            requesterId: r.requester_id,
-            requester: pu,
-            createdAt: r.created_at,
-          };
-        })
-        .filter((x): x is PendingFriendRequest => x !== null);
-    }
-
-    // 기존 accepted friends
-    const [{ data: sent }, { data: received }] = await Promise.all([
-      supabase
-        .from("friendships")
-        .select("receiver_id")
-        .eq("requester_id", user.id)
-        .eq("status", "accepted"),
-      supabase
-        .from("friendships")
-        .select("requester_id")
-        .eq("receiver_id", user.id)
-        .eq("status", "accepted"),
-    ]);
-
-    const friendIds = [
-      ...(sent ?? []).map((f) => f.receiver_id),
-      ...(received ?? []).map((f) => f.requester_id),
-    ];
-
-    const friendsPromise = friendIds.length > 0
-      ? supabase.from("users").select("*").in("id", friendIds)
-      : Promise.resolve({ data: [] as never });
-
-    const membershipsPromise = supabase
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("friendships")
+      .select("receiver_id")
+      .eq("requester_id", user.id)
+      .eq("status", "accepted"),
+    supabase
+      .from("friendships")
+      .select("requester_id")
+      .eq("receiver_id", user.id)
+      .eq("status", "accepted"),
+    supabase
       .from("group_members")
       .select("group_id")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id),
+  ]);
 
-    const [{ data: usersData }, { data: myMemberships }] = await Promise.all([
-      friendsPromise,
-      membershipsPromise,
-    ]);
+  const myInviteCode = me?.invite_code ?? "";
+  const myNickname = me?.nickname ?? "";
 
-    friends = (usersData ?? []).map(mapUser);
+  const friendIds = [
+    ...(sent ?? []).map((f) => f.receiver_id),
+    ...(received ?? []).map((f) => f.requester_id),
+  ];
+  const groupIds = (myMemberships ?? []).map((m) => m.group_id);
+  const requesterIds = (receivedPending ?? []).map((r) => r.requester_id);
 
-    const groupIds = (myMemberships ?? []).map((m) => m.group_id);
+  // Stage 2: stage 1 결과에 의존하는 모든 쿼리를 한 번에 발사.
+  // requester는 RLS상 친구가 아닌 경우 안 보이므로 admin client로.
+  const admin = requesterIds.length > 0 ? createAdminClient() : null;
 
-    if (groupIds.length > 0) {
-      const { data: groupRows } = await supabase
-        .from("groups")
-        .select("*")
-        .in("id", groupIds)
-        .order("created_at", { ascending: false });
+  const [
+    friendsRes,
+    requestersRes,
+    groupRowsRes,
+    allMembershipsRes,
+  ] = await Promise.all([
+    friendIds.length > 0
+      ? supabase.from("users").select("*").in("id", friendIds)
+      : Promise.resolve(emptyResult<UserRow>()),
+    admin
+      ? admin
+          .from("users")
+          .select("id, nickname, profile_image_url, status_message")
+          .in("id", requesterIds)
+      : Promise.resolve(emptyResult<RequesterRow>()),
+    groupIds.length > 0
+      ? supabase
+          .from("groups")
+          .select("*")
+          .in("id", groupIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve(emptyResult<GroupRow>()),
+    groupIds.length > 0
+      ? supabase
+          .from("group_members")
+          .select("group_id, user_id")
+          .in("group_id", groupIds)
+      : Promise.resolve(emptyResult<GroupMemberRow>()),
+  ]);
 
-      const { data: allMemberships } = await supabase
-        .from("group_members")
-        .select("group_id, user_id")
-        .in("group_id", groupIds);
+  const friendsData = (friendsRes.data ?? []) as UserRow[];
+  const requesters = (requestersRes.data ?? []) as RequesterRow[];
+  const groupRows = (groupRowsRes.data ?? []) as GroupRow[];
+  const allMemberships = (allMembershipsRes.data ?? []) as GroupMemberRow[];
 
-      const allMemberIds = [...new Set((allMemberships ?? []).map((m) => m.user_id))];
-      const { data: allUsers } = await supabase
-        .from("users")
-        .select("*")
-        .in("id", allMemberIds);
+  const friends: User[] = friendsData.map(mapUser);
 
-      const userMap = Object.fromEntries(
-        (allUsers ?? []).map((u) => [u.id, mapUser(u)])
-      );
+  const requesterMap = new Map(
+    requesters.map((u) => [u.id, mapPublicUser(u)])
+  );
 
-      const membersByGroup = (allMemberships ?? []).reduce<Record<string, User[]>>(
-        (acc, m) => {
-          if (!acc[m.group_id]) acc[m.group_id] = [];
-          const member = userMap[m.user_id];
-          if (member) acc[m.group_id].push(member);
-          return acc;
-        },
-        {}
-      );
+  const pendingRequests: PendingFriendRequest[] = (receivedPending ?? [])
+    .map((r) => {
+      const pu = requesterMap.get(r.requester_id);
+      if (!pu) return null;
+      return {
+        requesterId: r.requester_id,
+        requester: pu,
+        createdAt: r.created_at,
+      };
+    })
+    .filter((x): x is PendingFriendRequest => x !== null);
 
-      groups = (groupRows ?? []).map((row) => ({
-        ...mapGroup(row),
-        members: membersByGroup[row.id] ?? [],
-      }));
-    }
+  // Stage 3: 그룹 멤버 프로필 조회 (allMemberships 결과에 의존).
+  let groups: Group[] = [];
+  if (groupRows.length > 0) {
+    const allMemberIds = [...new Set(allMemberships.map((m) => m.user_id))];
+
+    const { data: allUsers } =
+      allMemberIds.length > 0
+        ? await supabase.from("users").select("*").in("id", allMemberIds)
+        : { data: null };
+
+    const userMap = Object.fromEntries(
+      (allUsers ?? []).map((u) => [u.id, mapUser(u)])
+    );
+
+    const membersByGroup = allMemberships.reduce<Record<string, User[]>>(
+      (acc, m) => {
+        if (!acc[m.group_id]) acc[m.group_id] = [];
+        const member = userMap[m.user_id];
+        if (member) acc[m.group_id].push(member);
+        return acc;
+      },
+      {}
+    );
+
+    groups = groupRows.map((row) => ({
+      ...mapGroup(row),
+      members: membersByGroup[row.id] ?? [],
+    }));
   }
 
   return (

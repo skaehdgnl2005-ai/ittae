@@ -43,11 +43,16 @@ export function TimeSlotCell({
   othersTotal,
   onClick,
 }: TimeSlotCellProps) {
+  // 본인이 그 날짜를 "available"로 안 했을 때(disabled)에도 다른 사람 색은 그대로 보여야 한다.
+  // When2meet 패리티: 그룹 가용성은 본인 입력 여부와 무관하게 항상 표시.
   if (disabled) {
     return (
       <div
-        className="h-8 bg-gray-200 dark:bg-gray-700 opacity-35"
-        aria-hidden="true"
+        aria-label={`${time}, 다른 사람 ${othersCount}/${othersTotal}명 가능 (본인 가용 시간으로 미표시)`}
+        className={cn(
+          "h-8 w-full border-b border-gray-100 dark:border-gray-800 opacity-60",
+          getOthersHeatmapClass(othersCount, othersTotal)
+        )}
       />
     );
   }

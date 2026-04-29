@@ -2,6 +2,7 @@
 
 import { TIME_SLOTS } from "@/lib/vote";
 import { TimeSlotCell } from "./TimeSlotCell";
+import { cn } from "@/lib/utils";
 
 type TimeColumnProps = {
   date: string;
@@ -32,8 +33,16 @@ export function TimeColumn({
   onCellClick,
 }: TimeColumnProps) {
   return (
-    <div className={disabled ? "opacity-35" : ""}>
-      <div className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 pb-1">
+    <div>
+      {/* 날짜 헤더만 dim — 셀 자체는 항상 다른 사람 가용 색을 보여줘야 한다. */}
+      <div
+        className={cn(
+          "text-center text-xs font-medium pb-1",
+          disabled
+            ? "text-gray-300 dark:text-gray-600 line-through"
+            : "text-gray-500 dark:text-gray-400"
+        )}
+      >
         {formatDateShort(date)}
       </div>
       <div className="flex flex-col">
