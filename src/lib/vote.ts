@@ -79,12 +79,102 @@ export function getTimeSlotHeatmap(
   return heatmap;
 }
 
-type BestTimeResult = {
+export type BestTimeResult = {
   date: string;
   startTime: string;
   endTime: string;
   count: number;
 };
+
+function slotMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function endTimeOf(slot: string): string {
+  const [h, m] = slot.split(":").map(Number);
+  return m === 30 ? `${h + 1}:00` : `${h}:30`;
+}
+
+/**
+ * 한 날짜의 heatmap을 같은 count가 연속되는 세그먼트로 분리한다.
+ * count === 0인 구간은 후보에서 제외한다.
+ */
+function getDateSegments(
+  slots: TimeSlot[],
+  date: string
+): BestTimeResult[] {
+  const heatmap = getTimeSlotHeatmap(slots, date);
+  const segments: BestTimeResult[] = [];
+
+  let segStartIdx: number | null = null;
+  let segCount = 0;
+
+  for (let i = 0; i <= TIME_SLOTS.length; i++) {
+    const t = i < TIME_SLOTS.length ? TIME_SLOTS[i] : null;
+    const c = t ? heatmap[t] : -1;
+
+    if (c !== segCount) {
+      if (segStartIdx !== null && segCount > 0) {
+        segments.push({
+          date,
+          startTime: TIME_SLOTS[segStartIdx],
+          endTime: endTimeOf(TIME_SLOTS[i - 1]),
+          count: segCount,
+        });
+      }
+      segStartIdx = t ? i : null;
+      segCount = c;
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * 전체 멤버 슬롯에서 인원이 많이 겹치는 후보 구간을 순위순으로 반환한다.
+ * 정렬 기준: count 내림차순 → 길이 내림차순 → 날짜 오름차순 → 시작시간 오름차순.
+ * 단, 2순위 이후로는 같은 count의 다른 날짜 후보가 있으면 우선 선택해 다양성을 확보한다.
+ */
+export function getRankedTimeSlots(
+  slots: TimeSlot[],
+  dates: string[],
+  topN = 2
+): BestTimeResult[] {
+  const candidates: BestTimeResult[] = [];
+  for (const date of dates) {
+    candidates.push(...getDateSegments(slots, date));
+  }
+
+  candidates.sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    const aLen = slotMinutes(a.endTime) - slotMinutes(a.startTime);
+    const bLen = slotMinutes(b.endTime) - slotMinutes(b.startTime);
+    if (bLen !== aLen) return bLen - aLen;
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return slotMinutes(a.startTime) - slotMinutes(b.startTime);
+  });
+
+  const picked: BestTimeResult[] = [];
+  const usedDates = new Set<string>();
+  const remaining = [...candidates];
+
+  while (picked.length < topN && remaining.length > 0) {
+    let idx = 0;
+    if (picked.length > 0) {
+      const topCount = remaining[0].count;
+      const diffDateIdx = remaining.findIndex(
+        (c) => !usedDates.has(c.date) && c.count === topCount
+      );
+      if (diffDateIdx >= 0) idx = diffDateIdx;
+    }
+    const chosen = remaining.splice(idx, 1)[0];
+    picked.push(chosen);
+    usedDates.add(chosen.date);
+  }
+
+  return picked;
+}
 
 /**
  * 전체 멤버 슬롯에서 최대 겹침 구간을 찾는다.
@@ -94,38 +184,5 @@ export function getBestTimeSlot(
   slots: TimeSlot[],
   dates: string[]
 ): BestTimeResult | null {
-  let best: BestTimeResult | null = null;
-
-  for (const date of dates) {
-    const heatmap = getTimeSlotHeatmap(slots, date);
-    const maxCount = Math.max(...Object.values(heatmap));
-    if (maxCount === 0) continue;
-
-    // maxCount인 연속 구간 찾기
-    let start: string | null = null;
-    for (let i = 0; i <= TIME_SLOTS.length; i++) {
-      const t = i < TIME_SLOTS.length ? TIME_SLOTS[i] : null;
-      const count = t ? heatmap[t] : 0;
-
-      if (count === maxCount && start === null) {
-        start = t!;
-      } else if (count !== maxCount && start !== null) {
-        // 구간 끝: endTime은 현재 슬롯의 30분 뒤
-        const prevSlot = TIME_SLOTS[i - 1];
-        const endHour = Math.floor(parseInt(prevSlot.split(":")[0]));
-        const endMin = parseInt(prevSlot.split(":")[1]);
-        const endTime =
-          endMin === 30
-            ? `${endHour + 1}:00`
-            : `${endHour}:30`;
-
-        if (!best || maxCount > best.count || (maxCount === best.count && start < best.startTime)) {
-          best = { date, startTime: start, endTime, count: maxCount };
-        }
-        start = null;
-      }
-    }
-  }
-
-  return best;
+  return getRankedTimeSlots(slots, dates, 1)[0] ?? null;
 }

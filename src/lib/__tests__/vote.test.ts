@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   getBestTimeSlot,
+  getRankedTimeSlots,
   getTimeSlotHeatmap,
   TIME_SLOTS,
   getVoteSummary,
@@ -84,5 +85,79 @@ describe("getBestTimeSlot", () => {
   it("returns null when no slots exist", () => {
     const result = getBestTimeSlot([], ["2026-04-25"]);
     expect(result).toBeNull();
+  });
+});
+
+describe("getRankedTimeSlots", () => {
+  it("returns top 2 ranked time slots across multiple dates", () => {
+    const slots: TimeSlot[] = [
+      // 4/25: 3명 겹침 15:00-17:00
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "17:00" },
+      { id: "t2", sessionId: "vs1", userId: "u2", date: "2026-04-25", startTime: "14:00", endTime: "17:00" },
+      { id: "t3", sessionId: "vs1", userId: "u3", date: "2026-04-25", startTime: "15:00", endTime: "17:00" },
+      // 4/26: 2명 겹침 18:00-19:00
+      { id: "t4", sessionId: "vs1", userId: "u1", date: "2026-04-26", startTime: "18:00", endTime: "19:00" },
+      { id: "t5", sessionId: "vs1", userId: "u2", date: "2026-04-26", startTime: "18:00", endTime: "19:00" },
+    ];
+    const result = getRankedTimeSlots(slots, ["2026-04-25", "2026-04-26"], 2);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      date: "2026-04-25",
+      startTime: "15:00",
+      endTime: "17:00",
+      count: 3,
+    });
+    expect(result[1]).toEqual({
+      date: "2026-04-26",
+      startTime: "18:00",
+      endTime: "19:00",
+      count: 2,
+    });
+  });
+
+  it("returns 2nd-rank candidate within the same date when only one date is active", () => {
+    const slots: TimeSlot[] = [
+      // 12:00-13:00: 2명, 14:00-15:00: 1명, 16:00-17:00: 2명
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "12:00", endTime: "13:00" },
+      { id: "t2", sessionId: "vs1", userId: "u2", date: "2026-04-25", startTime: "12:00", endTime: "13:00" },
+      { id: "t3", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+      { id: "t4", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "16:00", endTime: "17:00" },
+      { id: "t5", sessionId: "vs1", userId: "u2", date: "2026-04-25", startTime: "16:00", endTime: "17:00" },
+    ];
+    const result = getRankedTimeSlots(slots, ["2026-04-25"], 2);
+    expect(result).toHaveLength(2);
+    // 두 후보 모두 2명 1시간 — date+startTime 빠른 쪽이 1순위
+    expect(result[0].count).toBe(2);
+    expect(result[0].startTime).toBe("12:00");
+    expect(result[1].count).toBe(2);
+    expect(result[1].startTime).toBe("16:00");
+  });
+
+  it("returns fewer than topN when candidates are scarce", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+    ];
+    const result = getRankedTimeSlots(slots, ["2026-04-25", "2026-04-26"], 2);
+    expect(result).toHaveLength(1);
+    expect(result[0].count).toBe(1);
+  });
+
+  it("returns empty array when no slots exist", () => {
+    expect(getRankedTimeSlots([], ["2026-04-25"], 2)).toEqual([]);
+  });
+
+  it("prefers longer range when count is tied", () => {
+    const slots: TimeSlot[] = [
+      // 4/25: 2명 겹침 13:00-14:00 (1시간)
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "13:00", endTime: "14:00" },
+      { id: "t2", sessionId: "vs1", userId: "u2", date: "2026-04-25", startTime: "13:00", endTime: "14:00" },
+      // 4/26: 2명 겹침 15:00-17:00 (2시간)
+      { id: "t3", sessionId: "vs1", userId: "u1", date: "2026-04-26", startTime: "15:00", endTime: "17:00" },
+      { id: "t4", sessionId: "vs1", userId: "u2", date: "2026-04-26", startTime: "15:00", endTime: "17:00" },
+    ];
+    const result = getRankedTimeSlots(slots, ["2026-04-25", "2026-04-26"], 2);
+    expect(result[0].date).toBe("2026-04-26");
+    expect(result[0].endTime).toBe("17:00");
+    expect(result[1].date).toBe("2026-04-25");
   });
 });

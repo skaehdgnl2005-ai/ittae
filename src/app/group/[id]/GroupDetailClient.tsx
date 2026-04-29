@@ -9,7 +9,7 @@ import { StickyConfirmButton } from "@/components/vote/StickyConfirmButton";
 import { CommentSection } from "@/components/vote/CommentSection";
 import { useVoteRealtime } from "@/hooks/useVoteRealtime";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
-import { getBestDate, getBestTimeSlot, isAllVoted } from "@/lib/vote";
+import { getBestDate, getBestTimeSlot, getRankedTimeSlots, isAllVoted } from "@/lib/vote";
 import type { Vote, VoteChoice, VoteSession, Group, TimeSlot } from "@/types";
 import { ChevronLeft, Link2, Check } from "lucide-react";
 
@@ -161,7 +161,8 @@ export function GroupDetailClient({
         return choice === "available";
       })
     : [];
-  const bestTime = getBestTimeSlot(allTimeSlots, activeDates);
+  const rankedSlots = getRankedTimeSlots(allTimeSlots, activeDates, 2);
+  const bestTime = rankedSlots[0] ?? null;
 
   const showHeatmap = allVoted && allTimeSlots.length > 0;
 
@@ -231,10 +232,7 @@ export function GroupDetailClient({
           </div>
 
           <BestTimeBanner
-            date={bestTime?.date ?? null}
-            startTime={bestTime?.startTime ?? null}
-            endTime={bestTime?.endTime ?? null}
-            count={bestTime?.count ?? 0}
+            slots={rankedSlots}
             totalMembers={group.members.length}
           />
 
