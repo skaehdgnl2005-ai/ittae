@@ -57,10 +57,8 @@ export function TimeSlotCell({
     );
   }
 
-  // 본인 선택은 항상 가장 진한 색. 본인 색은 다른 사람 max 색보다 진하다(violet-700 > violet-400).
-  const baseClass = selected
-    ? "bg-violet-700 dark:bg-violet-500"
-    : getOthersHeatmapClass(othersCount, othersTotal);
+  // 본인 selection은 ring(테두리)만 두르고 배경은 다른 사람 히트맵을 그대로 노출 → 둘 다 동시에 보이게.
+  const baseClass = getOthersHeatmapClass(othersCount, othersTotal);
 
   return (
     <button
@@ -71,6 +69,10 @@ export function TimeSlotCell({
       className={cn(
         "h-8 w-full transition-colors border-b border-gray-100 dark:border-gray-800 relative",
         baseClass,
+        // 본인 선택: 안쪽 테두리만 — 안의 다른 사람 색이 보이도록
+        selected &&
+          !isPreview &&
+          "ring-2 ring-inset ring-violet-700 dark:ring-violet-300",
         // pending start: 시작점 강조
         isPendingStart &&
           !selected &&
