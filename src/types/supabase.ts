@@ -21,6 +21,9 @@ export type Database = {
           status_message: string | null;
           created_at: string;
           invite_code: string | null;
+          google_refresh_token: string | null;
+          google_calendar_email: string | null;
+          google_calendar_synced_at: string | null;
         };
         Insert: {
           id?: string;
@@ -30,6 +33,9 @@ export type Database = {
           status_message?: string | null;
           created_at?: string;
           invite_code?: string | null;
+          google_refresh_token?: string | null;
+          google_calendar_email?: string | null;
+          google_calendar_synced_at?: string | null;
         };
         Update: {
           id?: string;
@@ -39,6 +45,9 @@ export type Database = {
           status_message?: string | null;
           created_at?: string;
           invite_code?: string | null;
+          google_refresh_token?: string | null;
+          google_calendar_email?: string | null;
+          google_calendar_synced_at?: string | null;
         };
         Relationships: [];
       };
@@ -247,6 +256,9 @@ export type Database = {
           end_time: string | null;
           memo: string | null;
           created_at: string;
+          source: "manual" | "google";
+          external_event_id: string | null;
+          external_etag: string | null;
         };
         Insert: {
           id?: string;
@@ -257,6 +269,9 @@ export type Database = {
           end_time?: string | null;
           memo?: string | null;
           created_at?: string;
+          source?: "manual" | "google";
+          external_event_id?: string | null;
+          external_etag?: string | null;
         };
         Update: {
           id?: string;
@@ -267,6 +282,9 @@ export type Database = {
           end_time?: string | null;
           memo?: string | null;
           created_at?: string;
+          source?: "manual" | "google";
+          external_event_id?: string | null;
+          external_etag?: string | null;
         };
         Relationships: [];
       };

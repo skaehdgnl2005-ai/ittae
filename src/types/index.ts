@@ -78,6 +78,8 @@ export type Memory = {
   participants: User[];
 };
 
+export type ScheduleSource = "manual" | "google";
+
 export type Schedule = {
   id: string;
   userId: string;
@@ -87,6 +89,8 @@ export type Schedule = {
   endTime: string;
   memo: string | null;
   type: "personal" | "group";
+  source: ScheduleSource;
+  externalEventId: string | null;
 };
 
 export type PublicUser = Pick<User, "id" | "nickname" | "profileImageUrl" | "statusMessage">;
