@@ -78,7 +78,7 @@ export type Memory = {
   participants: User[];
 };
 
-export type ScheduleSource = "manual" | "google";
+export type ScheduleSource = "manual" | "google" | "everytime";
 
 export type Schedule = {
   id: string;
