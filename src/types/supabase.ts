@@ -256,9 +256,10 @@ export type Database = {
           end_time: string | null;
           memo: string | null;
           created_at: string;
-          source: "manual" | "google";
+          source: "manual" | "google" | "everytime";
           external_event_id: string | null;
           external_etag: string | null;
+          everytime_class_id: string | null;
         };
         Insert: {
           id?: string;
@@ -269,9 +270,10 @@ export type Database = {
           end_time?: string | null;
           memo?: string | null;
           created_at?: string;
-          source?: "manual" | "google";
+          source?: "manual" | "google" | "everytime";
           external_event_id?: string | null;
           external_etag?: string | null;
+          everytime_class_id?: string | null;
         };
         Update: {
           id?: string;
@@ -282,15 +284,24 @@ export type Database = {
           end_time?: string | null;
           memo?: string | null;
           created_at?: string;
-          source?: "manual" | "google";
+          source?: "manual" | "google" | "everytime";
           external_event_id?: string | null;
           external_etag?: string | null;
+          everytime_class_id?: string | null;
         };
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      replace_everytime_schedules: {
+        Args: {
+          p_user_id: string;
+          p_payloads: Json;
+        };
+        Returns: number;
+      };
+    };
     Enums: Record<string, never>;
   };
 };
