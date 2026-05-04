@@ -39,7 +39,9 @@
 
 **Files:** 없음 (수동 확인 + npm install)
 
-- [ ] **Step 1: 고려대 2026 학사력 확인**
+> ⚠ **진행 전략 변경:** 사용자 요청에 따라 **API 키 발급/주입은 맨 마지막**으로 미룸. 이 task에서는 학사력 확인 + SDK 설치만 진행, env var/키 발급은 Task 11 직전에 묶어서.
+
+- [ ] **Step 1: 고려대 2026 학사력 확인 (사용자 직접)**
 
 [고려대학교 학사일정](https://registrar.korea.ac.kr/)에서 다음 두 날짜 확인 후 spec 갱신:
 - 1학기 시작일 (개강일, 보통 3월 첫 월요일)
@@ -55,21 +57,17 @@
 pnpm add @google/genai
 ```
 
-- [ ] **Step 3: 환경변수 추가**
+- [ ] **Step 3: 환경변수 자리만 잡기 (값은 마지막에)**
 
-`.env.local`에 다음 줄 추가 (`.gitignore` 됨):
+`.env.local`에 다음 줄 추가하되 값은 빈 문자열 또는 placeholder. **API 키 실제 발급/주입은 Task 11 직전에 사용자가 직접.**
 
 ```
-GEMINI_API_KEY=your_api_key_here
+GEMINI_API_KEY=
 ```
 
 `.env.local.example` 파일이 있으면 같이 추가 (값은 빈 문자열).
 
-- [ ] **Step 4: API 키 발급**
-
-[Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료 키 발급 후 `.env.local`에 붙여넣기. 시연 단계에선 무료 quota 충분.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml docs/superpowers/specs/2026-05-01-everytime-ocr-design.md
@@ -706,30 +704,11 @@ export async function parseTimetableImage(
 }
 ```
 
-- [ ] **Step 3: PoC — 실제 스크린샷 1~2장으로 동작 확인**
+- [ ] **Step 3: PoC — 일단 SKIP (Task 11 직전에 진행)**
 
-이 단계는 일회성 검증이므로 코드 안 남기고 ad-hoc 스크립트로:
+> ⚠ **build-first 전략에 따라 이 단계는 Task 10 완료 후, 사용자가 API 키를 주입한 다음 진행**한다. 지금은 클라이언트 코드만 작성하고 넘어감.
 
-```bash
-# 임시 ad-hoc 스크립트 (커밋 X)
-node --experimental-vm-modules -e "
-  import('./src/lib/gemini/client.ts').then(async ({ parseTimetableImage }) => {
-    const fs = await import('node:fs');
-    const buf = fs.readFileSync('./scratch/timetable-sample.jpg');
-    const classes = await parseTimetableImage(buf, 'image/jpeg');
-    console.log(JSON.stringify(classes, null, 2));
-  });
-"
-```
-
-또는 더 간단히, 스크래치 라우트를 임시로 만들어서 dev 서버 fetch로 확인.
-
-검증 항목:
-- enum이 'MON' 같은 정확한 형식으로 오는지 (`'mon'`, `'월'` 같은 변형 없음)
-- startTime/endTime이 항상 "09:00" 같은 2자리 형식인지
-- location이 null로 오는 경우 처리되는지
-
-만약 enum이 깨지거나 시간 형식 변형이 자주 나오면, `client.ts`의 validation에서 자동으로 걸러지므로(invalid entry 제외) 기본 구현 그대로 OK. 검증 후 임시 파일/스크립트 삭제.
+(참고: 막판에 진행할 때는 ad-hoc 스크립트나 임시 라우트로 `parseTimetableImage`를 한 번 호출해서 enum/시간 형식이 깨지지 않는지만 확인. invalid entry는 client.ts의 validation에서 자동으로 걸러지므로 기본 구현 그대로 OK일 가능성 높음.)
 
 - [ ] **Step 4: typecheck**
 
@@ -1545,9 +1524,30 @@ git commit -m "feat(everytime): 홈 헤더에 진입 버튼 + hasExisting prop �
 
 ---
 
-## Task 11: 시연 시나리오 수동 QA + 최종 검증
+## Task 11: API 키 주입 + PoC + 시연 시나리오 수동 QA
 
-**Files:** 없음 (수동 검증)
+**Files:** `.env.local` (수동 편집)
+
+> **이 task는 사용자가 API 키 발급 후에 시작.** 그 전까지 Task 10에서 멈춰있음.
+
+- [ ] **Step 0: API 키 발급 및 주입 (사용자 직접)**
+
+[Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료 키 발급, `.env.local`의 `GEMINI_API_KEY=` 줄에 값 추가:
+
+```
+GEMINI_API_KEY=AIza...
+```
+
+dev 서버가 켜져 있으면 한 번 재시작.
+
+- [ ] **Step 0b: PoC — 실제 스크린샷 1~2장으로 동작 확인 (Task 6 step 3 미뤄둔 것)**
+
+`scratch/timetable-sample.jpg` 같은 경로에 에브리타임 시간표 스크린샷 1~2장 준비 후, 임시 라우트나 ad-hoc 스크립트로 `parseTimetableImage` 호출해서:
+- enum이 'MON' 같은 정확한 형식으로 오는지
+- startTime/endTime이 항상 "09:00" 같은 2자리 형식인지
+- location null 처리
+
+문제 있으면 `src/lib/gemini/client.ts`의 validation 강화. 검증 후 임시 파일 삭제.
 
 - [ ] **Step 1: 전체 테스트 + lint + typecheck**
 

@@ -35,13 +35,30 @@
 
 ## 다음 세션에서 해야 할 일 (순서대로)
 
-### 사전 준비 (구현 시작 전)
+### 진행 전략: "build first, API last"
+사용자 요청에 따라 **API 키는 맨 마지막에 넣음**. 코드 구조/UI/단위 테스트/typecheck/lint를 모두 끝낸 뒤, 마지막 단계에서 GEMINI_API_KEY를 발급해 PoC + 수동 QA를 한 번에 진행.
+
+**즉, 다음 세션 시작 시점에 API 키 없어도 OK.** Task 1~10까지는 Gemini 호출 없이 모두 작성/검증 가능. Task 0의 env 설정과 Task 6의 PoC는 Task 10 완료 후로 미룸.
+
+### 사전 준비 (다음 세션 시작 전)
+**필수:** 없음 (코드 작업만 먼저 진행).
+
+**Task 0 (학사력 확인)만 다음 세션 시작 시점에 처리** — [등록처 학사일정](https://registrar.korea.ac.kr/)에서 1·2학기 시작/종료일 확인하면 됨.
+
+### 막판에 본인이 해야 할 것 (Task 10 완료 후)
 1. **Gemini API 키 발급** — [Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료 키 발급, `.env.local`에 `GEMINI_API_KEY=...` 추가
-2. **에브리타임 시간표 스크린샷 1~2장 준비** — Task 6의 PoC 검증, Task 11의 시연 QA에 필요. `scratch/timetable-sample.jpg` 같은 경로에 둠 (gitignore)
-3. **고려대 학사력 확인** — Task 0 step 1. [등록처 학사일정](https://registrar.korea.ac.kr/) 페이지 확인
+2. **에브리타임 시간표 스크린샷 1~2장 준비** — `scratch/timetable-sample.jpg` 같은 경로 (gitignore)
+3. 그다음 Task 6의 PoC + Task 11의 수동 QA 한 번에 진행
 
 ### 실행
 **superpowers:subagent-driven-development** 스킬로 plan을 task-by-task 실행. plan 파일 자체에 fresh subagent가 읽고 진행할 수 있도록 모든 코드/명령이 포함되어 있음. 사용자(인간 검토자)는 task 사이마다 결과만 확인.
+
+**Task 순서 조정 (build-first):**
+- Task 0 → 학사력 확인만 진행, env var 추가는 SKIP
+- Task 1~5 → 정상 진행 (마이그레이션, 타입, expand 단위 테스트)
+- Task 6 → 클라이언트 코드는 작성하되 **step 3 (PoC)는 SKIP**, "API 키 들어오면 검증 예정" 코멘트만
+- Task 7~10 → 정상 진행 (Gemini 호출 없이 typecheck/lint로만 검증)
+- Task 0 step 3-4 + Task 6 step 3 + Task 11 → 사용자가 API 키 발급 후 한 묶음으로
 
 ## 다음 세션에서 첫 메시지로 붙여넣을 프롬프트
 
@@ -50,22 +67,26 @@
 완성했고, 이번 세션에서 subagent-driven으로 구현할 차례야.
 
 핵심 산출물 세 개:
-- docs/superpowers/handoffs/2026-05-01-everytime-ocr-handoff.md  (인수인계)
+- docs/superpowers/handoffs/2026-05-01-everytime-ocr-handoff.md  (인수인계 — 가장 먼저 읽기)
 - docs/superpowers/specs/2026-05-01-everytime-ocr-design.md      (spec)
 - docs/superpowers/plans/2026-05-01-everytime-ocr.md             (11-task plan)
 
-먼저 handoff 문서를 읽고 현재 상태/결정사항을 파악해. 그다음 spec과 plan을
-훑으면서 일관성·누락 빠르게 확인. 문제 없으면
-superpowers:subagent-driven-development 스킬로 plan을 task-by-task 실행해.
+진행 전략은 "build first, API last" — 코드 골조부터 다 짠 뒤 마지막에 API 키 넣고
+PoC + 수동 QA를 한꺼번에. 즉 GEMINI_API_KEY는 지금 없어도 되고, Task 1~10까지
+Gemini 호출 없이 모두 작성·검증 가능.
+
+순서:
+1. handoff 문서를 먼저 읽고 현재 상태/결정사항/순서 조정 사항 파악
+2. spec과 plan 훑으면서 일관성 빠르게 확인
+3. superpowers:subagent-driven-development 스킬로 plan을 task-by-task 실행
+   - Task 0: 학사력 확인만 진행 (env var 추가 SKIP)
+   - Task 1~5: 정상 진행
+   - Task 6: 클라이언트 코드만 작성, step 3 (PoC) SKIP
+   - Task 7~10: 정상 진행 (typecheck/lint로만 검증)
+   - Task 11: 일단 SKIP — 내가 API 키 발급한 다음 다시 알려줄게
 
 각 task 끝날 때마다 결과 보여주고 다음 task 진행해도 될지 물어봐. Task 0의
-"고려대 학사력 확인", Task 6의 "Gemini PoC", Task 11의 "수동 QA" 세 단계는
-내가 직접 손대야 하니까 멈춰서 알려줘.
-
-사전 준비:
-- .env.local에 GEMINI_API_KEY 들어있는지 확인
-- scratch/ 또는 임시 위치에 에브리타임 시간표 스크린샷 1~2장 있는지 확인
-없으면 먼저 알려줘.
+"고려대 학사력 확인"은 내가 직접 확인하고 알려줄게.
 ````
 
 ## 주의사항 / 알려진 트랩
