@@ -76,7 +76,7 @@ export function EverytimePreviewStep({
               <select
                 value={it.dayOfWeek}
                 onChange={(e) => onUpdate(idx, { dayOfWeek: e.target.value as DayOfWeek })}
-                className="h-9 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                className="h-9 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
               >
                 {DAYS_OF_WEEK.map((d) => (
                   <option key={d} value={d}>{DAY_LABEL[d]}</option>
@@ -87,14 +87,14 @@ export function EverytimePreviewStep({
                 step={1800}
                 value={it.startTime}
                 onChange={(e) => onUpdate(idx, { startTime: e.target.value })}
-                className="h-9 px-2 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                className="everytime-time-input h-9 px-2 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
               />
               <input
                 type="time"
                 step={1800}
                 value={it.endTime}
                 onChange={(e) => onUpdate(idx, { endTime: e.target.value })}
-                className="h-9 px-2 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                className="everytime-time-input h-9 px-2 text-sm rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
               />
             </div>
             <input

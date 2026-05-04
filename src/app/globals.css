@@ -74,3 +74,11 @@ body {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+/* iOS Safari: input[type="time"]의 시간 텍스트가 OS 기본색을 따라 다크모드에서 안 보이는 문제 방지 */
+.everytime-time-input::-webkit-datetime-edit,
+.everytime-time-input::-webkit-datetime-edit-hour-field,
+.everytime-time-input::-webkit-datetime-edit-minute-field,
+.everytime-time-input::-webkit-datetime-edit-text {
+  color: inherit;
+}
