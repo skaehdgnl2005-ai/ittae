@@ -18,27 +18,32 @@
 ### 반복 일정 모델
 - **Eager expand + 그룹 키** 방식. 학기 범위 안의 매주 같은 요일·시간으로 개별 row를 만든다.
 - 같은 과목에서 펼쳐진 row들은 `everytime_class_id` (uuid) 컬럼을 공유한다.
-- "자료구조만 삭제" / "에브리타임 일정 전체 삭제" 둘 다 한 줄 쿼리.
+- 그룹핑 기준: **`(title, location)` 자연 키**. Gemini는 한 셀(요일×시간)당 하나의 entry를 반환하므로, "자료구조 월·수" 같은 주2회 수업은 두 entry로 들어옴. expand 직전에 `(title, location)`이 같은 entry들을 한 그룹으로 묶고 그룹당 하나의 `everytime_class_id` 부여. location이 null이면 title만으로 묶음. (분반/이중강의실 충돌은 드물고, 충돌해도 사용자가 미리보기에서 location 수정으로 분리 가능)
+- "자료구조 전체 주차 삭제" / "에브리타임 일정 전체 삭제" 둘 다 한 줄 쿼리. (per-class 삭제 UX는 본 스프린트 범위 외, 그룹 키만 미리 깔아둠)
 - 현재 `schedules` 스키마(단일 `date` 컬럼)와 캘린더 렌더링 코드를 그대로 재사용.
 
 ### 학기 범위 입력
 - **고려대 2026 학사 일정 디폴트** + 사용자 수정 허용.
   - 1학기: `2026-03-02` ~ `2026-06-19`
   - 2학기: `2026-09-01` ~ `2026-12-18`
+- ⚠ **검증 필요**: 위 날짜는 추정치. 구현 전 [고려대 학사력](https://registrar.korea.ac.kr/)에서 정확한 학기 시작/종강일(시험기간 포함 여부 결정 필요) 확인하고 수정. 시험기간을 포함하면 일정이 너무 길고, 제외하면 시험기간엔 학교 안 가는 학생 가정 — MVP는 **종강일=시험기간 마지막 날**로 통일.
 - 시트 step 1에서 라디오 (1학기 / 2학기 / 직접 선택). 직접 선택 시 `<input type="date">` 두 개로 시작/종료 입력.
 - 학교별 학사 일정 자동 매핑은 범위 외(고려대만 디폴트, 다른 학교 학생은 직접 선택).
 
 ### 재업로드 정책
 - 새 스크린샷을 import 할 때마다 **사용자의 `source='everytime'` 일정을 모두 삭제 후 다시 펼침**(replace).
 - 학기 중간 시간표 변경 시 한 번에 갱신. partial update / merge 없음.
+- **사용자 알림**: 기존 everytime 일정이 있을 때 미리보기 화면 상단에 amber 배경의 inline 안내 — "기존에 가져온 N개 수업이 교체됩니다". 모달까지는 X.
+- **동시성 보호**: "X개 추가" 버튼은 클릭 즉시 `disabled` + 로딩 상태로 전환. fetch 완료 또는 에러까지 재클릭 차단. 더블클릭으로 인한 RPC 중복 호출 방지.
 - 원자성: Supabase JS 클라이언트는 트랜잭션이 없으므로, **Postgres 함수**(`replace_everytime_schedules(user_id, payloads jsonb)`)로 wrapping해서 delete + insert를 단일 RPC로 처리. 함수 내부는 자연스럽게 한 트랜잭션. RLS는 `security invoker`로 두고 함수 본문에서 `auth.uid() = user_id` 체크.
 
 ### 미리보기 / 편집
 - LLM 분석 직후 **저장 전** 미리보기 단계 필수. OCR이 100%가 아니므로 사용자 검증 게이트.
 - 표 형태로 모든 검출 클래스 표시: `[체크박스] 과목명  요일 시간  장소`
-- 행 탭 → 인라인 수정(제목/요일/시작/종료/장소).
+- 행 탭 → 인라인 수정(제목/요일/시작/종료/장소). 시간 input은 `<input type="time">`로 형식 강제.
 - 체크 해제 시 그 과목 제외.
-- 시간/요일/제목 누락된 행은 ⚠ 표시 + 수정 전까지 체크 비활성.
+- ⚠ 트리거 (필수 필드 누락만): **제목 빈 문자열, 요일 미인식(enum 매칭 실패), 시작/종료 시간 형식 오류, 종료≤시작**. 수정 전까지 체크 비활성.
+- ⚠ 트리거 아님: location null (정상값. 장소 미상 수업 가능)
 - 하단 "X개 추가" 버튼이 활성화된(체크된) 클래스만 import.
 
 ### 충돌 처리
@@ -47,8 +52,12 @@
 
 ### 오류 처리
 - LLM 호출 실패, JSON 파싱 실패, 0개 검출 → 토스트 "시간표를 인식할 수 없었어요. 더 선명한 사진으로 다시 시도해주세요"
-- 5MB 초과 / 비-jpeg/png → 클라이언트단에서 차단 + 토스트 "5MB 이하 이미지(jpg/png)만 지원해요"
+- 5MB 초과 / 비-jpeg/png → 클라이언트단에서 1차 차단 + 토스트 "5MB 이하 이미지(jpg/png)만 지원해요"
+- **서버 재검증 필수**: `/api/everytime/parse`에서 `Content-Length` 5MB 초과 시 `413`, `file.type` 불일치 시 `415`. 클라이언트 우회 공격 방어.
+- **결과 sanity cap**: Gemini가 30개 초과 entry 반환 시 `422` ("시간표가 아닌 이미지로 보입니다"). 시간표 격자엔 현실적으로 30개 이상 수업 안 들어감.
+- **Sanity 실패**: 시간 형식 정규식(`/^\d{2}:\d{2}$/`) 미통과, dayOfWeek enum 미통과, 종료≤시작 entry는 서버에서 **항목별로 ⚠ 플래그 추가**해서 응답 (drop 하지 않음). 사용자가 미리보기에서 직접 수정 가능.
 - 부분 실패(예: 8개 중 1개 시간 파싱 실패)는 미리보기 단계에서 ⚠로 노출 → 사용자 결정.
+- **분석 취소**: analyzing step의 취소 버튼은 fetch `AbortController`로 클라이언트 fetch만 abort. 서버 측 Gemini 호출은 계속 진행되고 결과는 폐기됨 (이미지 1장당 ~$0.001이라 비용 무시 가능). MVP에서 서버 측 Gemini abort 전파는 범위 외.
 
 ### 진입점
 - **홈 화면**의 `GoogleConnectButton` 바로 옆에 `EverytimeImportButton` 배치.
@@ -158,10 +167,11 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 ```
 
 **에러**:
-- `400`: 이미지 누락 / 지원 안 되는 형식
-- `413`: 5MB 초과
+- `400`: 이미지 누락
+- `413`: 5MB 초과 (Content-Length 기준)
+- `415`: 지원 안 되는 형식 (file.type이 image/jpeg, image/png 외)
+- `422`: Gemini 응답 파싱 실패 / 0개 검출 / 30개 초과
 - `502`: Gemini 호출 실패
-- `422`: Gemini 응답 파싱 실패 또는 0개 검출
 
 ### `POST /api/everytime/import`
 
@@ -185,7 +195,8 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 **응답**: `{ data: { insertedCount: number, classCount: number } }`
 
 **에러**:
-- `400`: 잘못된 입력 (날짜 역전, classes 빈 배열, 시간 형식 오류)
+- `400`: 잘못된 입력 (날짜 역전, classes 빈 배열, 시간 형식 오류, dayOfWeek enum 위반)
+- `422`: classes.length > 30 (sanity cap)
 - `500`: DB 오류
 
 ### `DELETE /api/everytime/import`
@@ -200,6 +211,7 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 - `GoogleConnectButton` 옆에 배치되는 진입 버튼.
 - 클릭 시 `EverytimeImportSheet` 오픈.
 - 사용자에게 이미 everytime 일정이 있으면 라벨이 "에브리타임 시간표 다시 가져오기"로 변경.
+- "기존 everytime 일정 존재 여부"는 별도 API를 만들지 말고, **홈 화면이 이미 호출하는 schedules fetch 결과에 source='everytime' row 존재 여부로 판정**해서 prop으로 내려줌. 마운트마다 추가 쿼리 X.
 
 ### `src/components/calendar/EverytimeImportSheet.tsx`
 4-step state machine, 한 컴포넌트 내부에서 step 전환:
@@ -215,11 +227,36 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 - `@google/generative-ai` 래퍼. `getGeminiClient()` 함수로 싱글톤 반환.
 - `parseTimetableImage(buffer: Buffer, mimeType: string): Promise<ParsedClass[]>` 노출.
 - 프롬프트는 `src/lib/gemini/prompts/everytime.ts`에 별도 분리.
-- `responseSchema`로 JSON 구조 강제.
+- `responseSchema`로 JSON 구조 강제. **dayOfWeek는 enum으로 제약**:
+  ```ts
+  responseSchema: {
+    type: "object",
+    properties: {
+      classes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            dayOfWeek: { type: "string", enum: ["MON","TUE","WED","THU","FRI","SAT","SUN"] },
+            startTime: { type: "string", description: "HH:MM 24h, 항상 2자리 (예: 09:00)" },
+            endTime: { type: "string", description: "HH:MM 24h, 항상 2자리 (예: 10:30)" },
+            location: { type: "string", nullable: true }
+          },
+          required: ["title", "dayOfWeek", "startTime", "endTime"]
+        }
+      }
+    },
+    required: ["classes"]
+  }
+  ```
+- ⚠ **PoC 선행 필수**: 구현 step 2 시작 전, Gemini 2.5 Flash가 위 enum + nullable 조합을 실제로 강제하는지 작은 PoC 1회 (실제 에브리타임 스크린샷 1~2장으로). 만약 가끔 enum 깨지면 fallback: `responseSchema` 없이 텍스트 모드 + 서버에서 zod parse + ⚠ 플래그.
 
 ### `src/lib/everytime/expand.ts` (순수 함수)
 - `expandClasses({ classes, semesterStart, semesterEnd, userId }): InsertPayload[]`
-- 각 class에 새 uuid `everytime_class_id` 부여.
+- **그룹핑**: 입력 classes를 `(title, location ?? '')`로 묶고 그룹마다 새 uuid `everytime_class_id` 부여. 같은 그룹 안의 entry들은 모두 같은 uuid.
+- **Dedup**: 같은 그룹 안에서 `(dayOfWeek, startTime, endTime)`이 완전 동일한 entry는 1개로 수렴 (Gemini 중복 인식, 사용자 실수 방어).
+- **날짜 계산**: `'YYYY-MM-DD'` 문자열을 `[y, m, d]`로 분해해서 `new Date(y, m-1, d)`로 로컬 타임존 Date 생성. `new Date('2026-03-02')`는 UTC로 해석돼서 KST 환경에서 1일 어긋날 수 있으므로 금지.
 - 학기 범위 안에서 `dayOfWeek`에 해당하는 모든 날짜 산출 → row 생성.
 - 단위 테스트 대상 (Vitest).
 
@@ -235,11 +272,14 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
       step: analyzing — "시간표 읽는 중…"
       ↓ (Gemini 응답)
       step: preview
+      ├─ (재업로드 시) "기존에 가져온 N개 수업이 교체됩니다" amber 안내
       ├─ ☑ 자료구조       월 09:00–10:30  IT405
+      ├─ ☑ 자료구조       수 09:00–10:30  IT405      ← 같은 그룹 (everytime_class_id 공유)
       ├─ ☑ 운영체제       화 13:00–14:30  공학관 201
-      ├─ ☐ 한국사 ⚠       수 15:00–16:30  [장소 미설정]
+      ├─ ☐ 한국사 ⚠       수 시간 미인식    중앙도서관   ← 시간 누락(필수 필드)
+      ├─ ☑ 교양체육       금 10:00–12:00  (장소 미상)  ← location null OK
       ├─ … (인라인 편집 가능)
-      └─ [12개 추가]
+      └─ [12개 추가]   ← 클릭 즉시 disabled+로딩
       ↓ (탭)
       step: done — "12개 수업이 학기 동안 추가됐어요" 토스트
       └─ 시트 닫힘, 캘린더 갱신
@@ -247,9 +287,9 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 
 ## 디자인 시스템 준수
 
-- 색상: violet-600 (확인 버튼), gray-* (외곽), red-500 (오류), amber-500 (⚠ 누락)
+- 색상: violet-600 (확인 버튼), gray-* (외곽), red-500 (오류), amber-500 (⚠ 누락 / 재업로드 안내)
 - 라운드: 시트 상단 16px(2xl), 카드 12px(xl), 버튼 8px(lg)
-- 폰트: Pretendard. 시간 텍스트는 본문 사이즈(text-sm) 그대로, Instrument Serif 미사용
+- 폰트: Pretendard. 시간 텍스트는 본문 사이즈(text-sm) 그대로 (이 화면은 정보 밀도가 높아 Instrument Serif 같은 강조 세리프는 부적절)
 - Tailwind 전용. 인라인 스타일 금지.
 - 터치 타겟 min-h-11
 - 다크모드: `dark:` 프리픽스로 모든 색상 대응
@@ -264,7 +304,14 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 
 ## 테스트 전략
 
-- **단위 (Vitest)**: `expand.ts` — 학기 범위 내 주차 산출, 시작=종료일, 시작>종료일, 학기 시작 전 요일 등 엣지.
+- **단위 (Vitest)**: `expand.ts`
+  - 학기 범위 내 주차 산출 (월요일 시작/종료, 금요일 시작/종료 등)
+  - 시작=종료일 (1주만)
+  - 시작>종료일 (빈 배열 또는 throw)
+  - 학기 시작 전·후 요일이 첫 주에 포함되는 경계
+  - `(title, location)` 그룹핑: 같은 그룹에 동일 uuid, 다른 그룹에 다른 uuid
+  - `(dayOfWeek, startTime, endTime)` 중복 dedup
+  - KST 타임존 정확성 (`'2026-03-02'` → 월요일로 정확히 인식)
 - **통합 (수동)**: 실제 에브리타임 스크린샷 3~5장으로 미리보기 정확도 확인.
 - **시연 시나리오**: 고려대 1학기 디폴트로 5~6과목 인식 → 미리보기 → 1과목 체크 해제 → 추가 → 캘린더에서 매주 반복 확인.
 
@@ -272,11 +319,12 @@ Gemini 호출만 하고 DB는 건드리지 않음. 미리보기용.
 
 이 spec은 다음 작업 단위로 분해된다 (writing-plans에서 상세화):
 
+0. 고려대 학사력 확인 → 디폴트 학기 날짜 fix (구현 전 한 번)
 1. 마이그레이션 007 작성 + 타입 재생성
-2. Gemini 클라이언트 + 프롬프트
-3. `expand.ts` 순수 함수 + 단위 테스트
-4. `/api/everytime/parse` 라우트
-5. `/api/everytime/import` 라우트 (POST + DELETE)
-6. `EverytimeImportSheet` 컴포넌트 (4-step)
-7. `EverytimeImportButton` + 홈 진입점 통합
-8. 시연 시나리오 수동 QA + `pnpm typecheck && pnpm lint`
+2. Gemini PoC (실제 스샷 1~2장으로 enum 강제 동작 확인) → 클라이언트 + 프롬프트 작성
+3. `expand.ts` 순수 함수 + 단위 테스트 (`pnpm test`)
+4. `/api/everytime/parse` 라우트 (서버측 size/type 재검증, 30개 cap 포함)
+5. `/api/everytime/import` 라우트 (POST + DELETE, RPC 호출)
+6. `EverytimeImportSheet` 컴포넌트 (4-step, 더블클릭 방어, AbortController)
+7. `EverytimeImportButton` + 홈 진입점 통합 (기존 schedules fetch에 piggyback)
+8. 시연 시나리오 수동 QA + `pnpm test && pnpm typecheck && pnpm lint`
