@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/layout/LogoutButton";
 import { AddPersonalScheduleButton } from "@/components/calendar/AddPersonalScheduleButton";
 import { GoogleSyncIndicator } from "@/components/calendar/GoogleSyncIndicator";
 import { ReauthBanner } from "@/components/calendar/ReauthBanner";
+import { EverytimeImportButton } from "@/components/calendar/EverytimeImportButton";
 import { mapSchedule, mapGroup } from "@/lib/mappers";
 import { syncUserGoogleCalendar } from "@/lib/google/sync";
 import type { Schedule, Group } from "@/types";
@@ -86,6 +87,8 @@ export default async function HomePage() {
 
   const schedules: Schedule[] = (schedulesData ?? []).map(mapSchedule);
   const groups: Group[] = (groupsData ?? []).map(mapGroup);
+  const everytimeCount = schedules.filter((s) => s.source === "everytime").length;
+  const hasEverytime = everytimeCount > 0;
 
   // 확정된 그룹 모임을 schedule 형태로 합성 → DayEventList가 그룹 카드를 렌더할 수 있게 함
   const groupSchedules = groups
@@ -117,6 +120,12 @@ export default async function HomePage() {
           <GoogleSyncIndicator syncedAt={syncedAt} />
         </div>
       )}
+      <div className="px-5 pt-2">
+        <EverytimeImportButton
+          hasExistingEverytime={hasEverytime}
+          existingCount={everytimeCount}
+        />
+      </div>
       <HomeCalendarView schedules={allSchedules} groups={groups} />
     </div>
   );
