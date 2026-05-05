@@ -34,10 +34,11 @@ export function GuestVoteClient({ code, groupId, groupName }: Props) {
   const [state, setState] = useState<State | null>(null);
   const [needsNickname, setNeedsNickname] = useState(false);
 
-  // mount: localStorage 토큰 확인
+  // mount: localStorage 토큰 확인 (client-only — SSR hydration 후 1회).
   useEffect(() => {
     const existing = getGuestToken(groupId);
     if (existing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setToken(existing);
     } else {
       setNeedsNickname(true);

@@ -157,10 +157,13 @@ export function GroupDetailClient({
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleCopyLink = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href);
+    const target = group.inviteCode
+      ? `${window.location.origin}/g/${group.inviteCode}`
+      : window.location.href;
+    await navigator.clipboard.writeText(target);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
-  }, []);
+  }, [group.inviteCode]);
 
   const activeDates = voteSession ? voteSession.candidateDates : [];
 
@@ -195,7 +198,8 @@ export function GroupDetailClient({
   const hasMyVotes = Object.values(rangesByDate).some(
     (ranges) => ranges.length > 0
   );
-  const othersTotal = Math.max(0, group.members.length - 1);
+  const totalParticipants = group.members.length + group.guests.length;
+  const othersTotal = Math.max(0, totalParticipants - 1);
 
   // 확정 화면 표시용 — 확정된 날짜는 group.confirmedDate 우선, 없으면 합의 best.
   const confirmedDateDisplay =
@@ -220,7 +224,8 @@ export function GroupDetailClient({
             {group.name}
           </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {group.members.length}명 참여
+            {totalParticipants}명 참여
+            {group.guests.length > 0 && ` · 게스트 ${group.guests.length}`}
           </p>
         </div>
         <button
@@ -262,7 +267,7 @@ export function GroupDetailClient({
 
           <BestTimeBanner
             slots={rankedSlots}
-            totalMembers={group.members.length}
+            totalMembers={totalParticipants}
           />
 
           <TimeGrid

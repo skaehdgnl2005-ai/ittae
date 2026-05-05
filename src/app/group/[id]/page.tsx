@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { mapGroup, mapUser, mapVoteSession, mapVote, mapTimeSlot } from "@/lib/mappers";
-import type { Group, VoteSession, Vote, User, TimeSlot } from "@/types";
+import { mapGroup, mapUser, mapVoteSession, mapVote, mapTimeSlot, mapGuest } from "@/lib/mappers";
+import type { Group, VoteSession, Vote, User, TimeSlot, Guest } from "@/types";
 import { GroupDetailClient } from "./GroupDetailClient";
 import { ROUTES } from "@/lib/routes";
 
@@ -51,12 +51,16 @@ export default async function GroupDetailPage({
   //   - users RLS는 본인 + 친구만 SELECT 허용 → 친구 아닌 그룹 멤버 프로필이 누락됨.
   // 그 결과 group.members.length 가 1로 잡혀 othersTotal=0이 되고 다른 사람 가용 색이 안 칠해진다.
   const adminClient = createAdminClient();
-  const { data: allMemberships } = await adminClient
-    .from("group_members")
-    .select("user_id")
-    .eq("group_id", id);
+  const [
+    { data: allMemberships },
+    { data: guestRows },
+  ] = await Promise.all([
+    adminClient.from("group_members").select("user_id").eq("group_id", id),
+    adminClient.from("group_guests").select("*").eq("group_id", id),
+  ]);
 
   const memberIds = (allMemberships ?? []).map((m) => m.user_id);
+  const guests: Guest[] = (guestRows ?? []).map(mapGuest);
 
   // Stage 2: 멤버 프로필(admin) + (세션 있으면) votes + time_slots(일반 RLS) 병렬.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,7 +87,7 @@ export default async function GroupDetailPage({
   ]);
 
   const members: User[] = (usersData ?? []).map(mapUser);
-  const group: Group = { ...mapGroup(groupRow), members };
+  const group: Group = { ...mapGroup(groupRow), members, guests };
 
   if (!sessionRow) {
     return (
