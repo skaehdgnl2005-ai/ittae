@@ -84,6 +84,7 @@ export type Database = {
           confirmed_date: string | null;
           place_id: string | null;
           created_at: string;
+          invite_code: string | null;
         };
         Insert: {
           id?: string;
@@ -93,6 +94,7 @@ export type Database = {
           confirmed_date?: string | null;
           place_id?: string | null;
           created_at?: string;
+          invite_code?: string | null;
         };
         Update: {
           id?: string;
@@ -101,6 +103,31 @@ export type Database = {
           status?: "voting" | "confirmed" | "completed";
           confirmed_date?: string | null;
           place_id?: string | null;
+          created_at?: string;
+          invite_code?: string | null;
+        };
+        Relationships: [];
+      };
+      group_guests: {
+        Row: {
+          id: string;
+          group_id: string;
+          nickname: string;
+          browser_token: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          nickname: string;
+          browser_token: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          nickname?: string;
+          browser_token?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -151,7 +178,8 @@ export type Database = {
         Row: {
           id: string;
           session_id: string;
-          user_id: string;
+          user_id: string | null;
+          guest_id: string | null;
           date: string;
           choice: "available" | "maybe" | "unavailable";
           comment: string | null;
@@ -160,7 +188,8 @@ export type Database = {
         Insert: {
           id?: string;
           session_id: string;
-          user_id: string;
+          user_id?: string | null;
+          guest_id?: string | null;
           date: string;
           choice: "available" | "maybe" | "unavailable";
           comment?: string | null;
@@ -169,7 +198,8 @@ export type Database = {
         Update: {
           id?: string;
           session_id?: string;
-          user_id?: string;
+          user_id?: string | null;
+          guest_id?: string | null;
           date?: string;
           choice?: "available" | "maybe" | "unavailable";
           comment?: string | null;
