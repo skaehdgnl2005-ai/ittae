@@ -9,6 +9,13 @@ export type User = {
   statusMessage: string | null;
 };
 
+export type Guest = {
+  id: string;
+  groupId: string;
+  nickname: string;
+  createdAt: string;
+};
+
 export type Group = {
   id: string;
   name: string;
@@ -17,7 +24,9 @@ export type Group = {
   confirmedDate: string | null;
   placeId: string | null;
   createdAt: string;
+  inviteCode: string | null;
   members: User[];
+  guests: Guest[];
 };
 
 export type VoteSession = {
@@ -30,7 +39,8 @@ export type VoteSession = {
 export type Vote = {
   id: string;
   sessionId: string;
-  userId: string;
+  userId: string | null;
+  guestId?: string | null;
   date: string;
   choice: VoteChoice;
   comment: string | null;
@@ -62,7 +72,8 @@ export type KakaoPlace = {
 export type TimeSlot = {
   id: string;
   sessionId: string;
-  userId: string;
+  userId: string | null;
+  guestId?: string | null;
   date: string;       // "YYYY-MM-DD"
   startTime: string;  // "HH:MM"
   endTime: string;    // "HH:MM"

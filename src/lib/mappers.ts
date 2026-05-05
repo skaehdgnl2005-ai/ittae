@@ -1,5 +1,5 @@
 import type { Database } from "@/types/supabase";
-import type { Schedule, Group, User, VoteSession, Vote, Memory, TimeSlot, PublicUser } from "@/types";
+import type { Schedule, Group, User, VoteSession, Vote, Memory, TimeSlot, PublicUser, Guest } from "@/types";
 
 export function mapSchedule(
   row: Database["public"]["Tables"]["schedules"]["Row"]
@@ -29,7 +29,9 @@ export function mapGroup(
     confirmedDate: row.confirmed_date,
     placeId: row.place_id,
     createdAt: row.created_at,
+    inviteCode: row.invite_code ?? null,
     members: [],
+    guests: [],
   };
 }
 
@@ -62,6 +64,7 @@ export function mapVote(
     id: row.id,
     sessionId: row.session_id,
     userId: row.user_id,
+    guestId: row.guest_id ?? null,
     date: row.date,
     choice: row.choice as Vote["choice"],
     comment: row.comment,
@@ -83,15 +86,40 @@ export function mapMemory(
 }
 
 export function mapTimeSlot(
-  row: { id: string; session_id: string; user_id: string; date: string; start_time: string; end_time: string }
+  row: {
+    id: string;
+    session_id: string;
+    user_id: string | null;
+    guest_id?: string | null;
+    date: string;
+    start_time: string;
+    end_time: string;
+  }
 ): TimeSlot {
   return {
     id: row.id,
     sessionId: row.session_id,
     userId: row.user_id,
+    guestId: row.guest_id ?? null,
     date: row.date,
     startTime: row.start_time,
     endTime: row.end_time,
+  };
+}
+
+type GuestRow = {
+  id: string;
+  group_id: string;
+  nickname: string;
+  created_at: string;
+};
+
+export function mapGuest(row: GuestRow): Guest {
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    nickname: row.nickname,
+    createdAt: row.created_at,
   };
 }
 

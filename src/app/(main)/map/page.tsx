@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { LocateFixed } from "lucide-react";
 import { KakaoMapProvider } from "@/components/map/KakaoMapProvider";
 import { MapView } from "@/components/map/MapView";
@@ -76,6 +76,10 @@ export default function MapPage() {
   }, [fetchPlaces]);
 
   const { loading: geoLoading, error: geoError, requestLocation } = useGeolocation(handleGeoSuccess);
+
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   const selectedPlace = places.find((p) => p.kakaoPlaceId === selectedPlaceId) ?? null;
 

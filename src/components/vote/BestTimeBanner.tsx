@@ -23,27 +23,29 @@ export function BestTimeBanner({ slots, totalMembers }: BestTimeBannerProps) {
   const showRanks = slots.length >= 2;
 
   return (
-    <div className="mx-5 my-3 bg-violet-50 border border-violet-200 rounded-xl p-3 dark:bg-violet-900/20 dark:border-violet-800">
-      <div className="flex items-start gap-2">
-        <span aria-hidden="true" className="text-sm leading-5">
-          ⭐
-        </span>
-        <div className="flex-1 min-w-0">
-          {showRanks && (
-            <p className="text-[11px] font-medium text-violet-500 dark:text-violet-400">
-              1순위
+    <div className="mx-5 my-3 space-y-2">
+      <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 dark:bg-violet-900/20 dark:border-violet-800">
+        <div className="flex items-start gap-2">
+          <span aria-hidden="true" className="text-sm leading-5">
+            ⭐
+          </span>
+          <div className="flex-1 min-w-0">
+            {showRanks && (
+              <p className="text-[11px] font-medium text-violet-500 dark:text-violet-400">
+                1순위
+              </p>
+            )}
+            <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
+              {formatDate(first.date)} {first.startTime}~{first.endTime}
             </p>
-          )}
-          <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
-            {formatDate(first.date)} {first.startTime}~{first.endTime}
-          </p>
-          <p className="text-xs text-violet-600 dark:text-violet-400">
-            {countLabel(first.count, totalMembers)}
-          </p>
+            <p className="text-xs text-violet-600 dark:text-violet-400">
+              {countLabel(first.count, totalMembers)}
+            </p>
+          </div>
         </div>
       </div>
       {second && (
-        <div className="mt-2 pt-2 pl-6 border-t border-violet-200/60 dark:border-violet-800/60">
+        <div className="bg-violet-50/40 border border-violet-100 rounded-xl px-3 py-2 dark:bg-violet-900/10 dark:border-violet-900/50">
           <div className="flex items-baseline gap-2">
             <span className="text-[11px] font-medium text-violet-500/90 dark:text-violet-400/90 flex-shrink-0">
               2순위

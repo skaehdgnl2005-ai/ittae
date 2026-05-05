@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { DateToggleRow } from "@/components/vote/DateToggleRow";
 import { BestTimeBanner } from "@/components/vote/BestTimeBanner";
 import { TimeGrid } from "@/components/vote/TimeGrid";
 import { VoteActionBar } from "@/components/vote/VoteActionBar";
@@ -10,7 +9,7 @@ import { WelcomeVoteBanner } from "@/components/vote/WelcomeVoteBanner";
 import { CommentSection } from "@/components/vote/CommentSection";
 import { useVoteRealtime } from "@/hooks/useVoteRealtime";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
-import { getBestDate, getBestTimeSlot, getRankedTimeSlots, isAllVoted } from "@/lib/vote";
+import { getBestTimeSlot, getRankedTimeSlots, isAllVoted } from "@/lib/vote";
 import type { Vote, VoteChoice, VoteSession, Group, TimeSlot } from "@/types";
 import { ChevronLeft, Link2, Check } from "lucide-react";
 
@@ -21,13 +20,6 @@ type Props = {
   initialTimeSlots?: TimeSlot[];
   currentUserId: string;
 };
-
-/** 날짜 투표를 순환: null → available → unavailable → null */
-function cycleDateChoice(current: VoteChoice | null): VoteChoice | null {
-  if (current === null) return "available";
-  if (current === "available") return "unavailable";
-  return null;
-}
 
 export function GroupDetailClient({
   group,
@@ -44,16 +36,17 @@ export function GroupDetailClient({
     initialTimeSlots
   );
 
-  const [dateChoices, setDateChoices] = useState<Record<string, VoteChoice | null>>(() => {
+  // 날짜 가능/불가 토글은 제거됨 — 모든 후보 날짜는 항상 "가능"으로 처리한다.
+  // 시간 그리드의 disabled 분기 호환을 위해 dateChoices만 유지.
+  const dateChoices = useMemo<Record<string, VoteChoice | null>>(() => {
     const map: Record<string, VoteChoice | null> = {};
     if (voteSession) {
       voteSession.candidateDates.forEach((d) => {
-        const v = initialVotes.find((vote) => vote.userId === currentUserId && vote.date === d);
-        map[d] = v?.choice ?? null;
+        map[d] = "available";
       });
     }
     return map;
-  });
+  }, [voteSession]);
 
   const myInitialSlots = useMemo(
     () => initialTimeSlots.filter((s) => s.userId === currentUserId),
@@ -68,33 +61,6 @@ export function GroupDetailClient({
     rangesByDate,
     pendingPersist,
   } = useTimeSlotSelection(myInitialSlots);
-
-  const handleDateToggle = useCallback(
-    async (date: string) => {
-      const current = dateChoices[date] ?? null;
-      const next = cycleDateChoice(current);
-
-      setDateChoices((prev) => ({ ...prev, [date]: next }));
-
-      if (!voteSession) return;
-
-      if (next === null) {
-        // TODO: DELETE vote endpoint (not in current API — skip for MVP)
-        return;
-      }
-
-      const existing = votes.find(
-        (v) => v.userId === currentUserId && v.date === date
-      );
-      const method = existing ? "PATCH" : "POST";
-      await fetch(`/api/vote-sessions/${voteSession.id}/votes`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, choice: next }),
-      });
-    },
-    [dateChoices, voteSession, currentUserId, votes]
-  );
 
   const handleTimeSlotClick = useCallback(
     (date: string, time: string) => {
@@ -132,19 +98,19 @@ export function GroupDetailClient({
   const handleMyVoteSave = useCallback(async () => {
     if (!voteSession) return;
 
-    const datePromises = Object.entries(dateChoices)
-      .filter(([, choice]) => choice !== null)
-      .map(([date, choice]) => {
-        const existing = votes.find(
-          (v) => v.userId === currentUserId && v.date === date
-        );
-        const method = existing ? "PATCH" : "POST";
-        return fetch(`/api/vote-sessions/${voteSession.id}/votes`, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date, choice }),
-        });
+    // 모든 후보 날짜를 자동으로 "available" 로 마킹한다 (저장 시 1회).
+    // isAllVoted/getBestDate 등 기존 로직과 호환을 유지하려는 목적.
+    const datePromises = voteSession.candidateDates.map((date) => {
+      const existing = votes.find(
+        (v) => v.userId === currentUserId && v.date === date
+      );
+      const method = existing ? "PATCH" : "POST";
+      return fetch(`/api/vote-sessions/${voteSession.id}/votes`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, choice: "available" }),
       });
+    });
 
     const slotPromises = voteSession.candidateDates.map((date) => {
       const ranges = getSelectedRanges(date);
@@ -162,33 +128,28 @@ export function GroupDetailClient({
     });
 
     await Promise.all([...datePromises, ...slotPromises]);
-  }, [voteSession, dateChoices, votes, currentUserId, getSelectedRanges]);
+  }, [voteSession, votes, currentUserId, getSelectedRanges]);
 
   const handleConfirm = useCallback(async () => {
     if (!voteSession) return;
-    const bestDate = getBestDate(voteSession, votes);
-    if (!bestDate) return;
 
-    const confirmActiveDates = voteSession.candidateDates.filter((d) => {
-      const v = votes.find((vote) => vote.date === d && vote.choice === "available");
-      return !!v;
-    });
-    // confirm 시에는 서버에 반영된 데이터(allTimeSlots)만 본다 — 다른 멤버 기준으로 best slot을 결정.
-    const best = getBestTimeSlot(allTimeSlots, confirmActiveDates);
+    // 날짜별 가용 토글이 사라졌으므로, 시간 슬롯 합의에서 best 날짜+시간을 함께 결정한다.
+    const best = getBestTimeSlot(allTimeSlots, voteSession.candidateDates);
+    const confirmedDate = best?.date ?? voteSession.candidateDates[0];
+    if (!confirmedDate) return;
 
     await fetch(`/api/groups/${group.id}/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        confirmedDate: bestDate,
+        confirmedDate,
         confirmedStartTime: best?.startTime,
         confirmedEndTime: best?.endTime,
       }),
     });
     router.refresh();
-  }, [voteSession, votes, allTimeSlots, group.id, router]);
+  }, [voteSession, allTimeSlots, group.id, router]);
 
-  const bestDate = voteSession ? getBestDate(voteSession, votes) : null;
   const memberIds = group.members.map((m) => m.id);
   const allVoted = voteSession ? isAllVoted(voteSession, votes, memberIds) : false;
   const isHost = group.hostId === currentUserId;
@@ -201,12 +162,7 @@ export function GroupDetailClient({
     setTimeout(() => setLinkCopied(false), 2000);
   }, []);
 
-  const activeDates = voteSession
-    ? voteSession.candidateDates.filter((d) => {
-        const choice = dateChoices[d];
-        return choice === "available";
-      })
-    : [];
+  const activeDates = voteSession ? voteSession.candidateDates : [];
 
   // 다른 사람들 timeSlots만 — 히트맵 색 계산용 (본인은 본인 색으로 별도 표시).
   const othersTimeSlots = useMemo<TimeSlot[]>(
@@ -236,8 +192,14 @@ export function GroupDetailClient({
 
   const rankedSlots = getRankedTimeSlots(effectiveTimeSlots, activeDates, 2);
   const bestTime = rankedSlots[0] ?? null;
-  const hasMyVotes = Object.values(dateChoices).some((c) => c !== null);
+  const hasMyVotes = Object.values(rangesByDate).some(
+    (ranges) => ranges.length > 0
+  );
   const othersTotal = Math.max(0, group.members.length - 1);
+
+  // 확정 화면 표시용 — 확정된 날짜는 group.confirmedDate 우선, 없으면 합의 best.
+  const confirmedDateDisplay =
+    group.confirmedDate ?? bestTime?.date ?? voteSession?.candidateDates[0] ?? null;
 
   return (
     <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
@@ -288,7 +250,7 @@ export function GroupDetailClient({
                 일정이 확정되었어요!
               </p>
               <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                {bestDate}
+                {confirmedDateDisplay}
                 {bestTime && ` ${bestTime.startTime}~${bestTime.endTime}`}
               </p>
             </div>
@@ -297,13 +259,6 @@ export function GroupDetailClient({
       ) : voteSession ? (
         <>
           <WelcomeVoteBanner />
-          <div className="px-5 mt-4">
-            <DateToggleRow
-              dates={voteSession.candidateDates}
-              choices={dateChoices}
-              onToggle={handleDateToggle}
-            />
-          </div>
 
           <BestTimeBanner
             slots={rankedSlots}

@@ -3,7 +3,9 @@ import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/supabase/auth";
 import { mapGroup, mapUser } from "@/lib/mappers";
+import { generateInviteCode } from "@/lib/inviteCode";
 import type { Group, User } from "@/types";
+import type { Database } from "@/types/supabase";
 
 export async function GET() {
   const auth = await requireAuth();
@@ -83,15 +85,38 @@ export async function POST(request: NextRequest) {
   const { user } = auth;
 
   const supabase = await createServerClient();
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .insert({
-      name: body.name.trim(),
-      host_id: user.id,
-      status: "voting",
-    })
-    .select()
-    .single();
+
+  // invite_code 자동 발급 (충돌 시 재시도)
+  type GroupRow = Database["public"]["Tables"]["groups"]["Row"];
+  let group: GroupRow | null = null;
+  let groupError: { message: string } | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateInviteCode(8);
+    const result = await supabase
+      .from("groups")
+      .insert({
+        name: body.name.trim(),
+        host_id: user.id,
+        status: "voting",
+        invite_code: code,
+      })
+      .select()
+      .single();
+
+    if (!result.error) {
+      group = result.data;
+      groupError = null;
+      break;
+    }
+    // unique_violation (23505)인 경우만 재시도. invite_code 충돌 가능성.
+    const pgErr = result.error as { code?: string; message: string };
+    if (pgErr.code === "23505" && pgErr.message.includes("invite_code")) {
+      continue;
+    }
+    groupError = result.error;
+    break;
+  }
 
   if (groupError || !group) {
     return NextResponse.json({ error: groupError?.message ?? "Failed to create group" }, { status: 500 });

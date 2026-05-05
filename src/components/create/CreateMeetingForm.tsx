@@ -76,6 +76,20 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
       transition={{ duration: 0.3 }}
       className="px-5 py-6 space-y-5"
     >
+      {/* 후보 날짜 */}
+      <div>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+          후보 날짜 <span className="text-violet-600">*</span>{" "}
+          <span className="text-xs font-normal text-gray-400">
+            여러 날 선택 가능
+          </span>
+        </p>
+        <CandidateDatePicker
+          selected={candidateDates}
+          onChange={setCandidateDates}
+        />
+      </div>
+
       {/* 모임 이름 */}
       <div>
         <label
@@ -107,20 +121,6 @@ export function CreateMeetingForm({ friends }: CreateMeetingFormProps) {
           friends={friends}
           selected={memberIds}
           onChange={setMemberIds}
-        />
-      </div>
-
-      {/* 후보 날짜 */}
-      <div>
-        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-          후보 날짜 <span className="text-violet-600">*</span>{" "}
-          <span className="text-xs font-normal text-gray-400">
-            여러 날 선택 가능
-          </span>
-        </p>
-        <CandidateDatePicker
-          selected={candidateDates}
-          onChange={setCandidateDates}
         />
       </div>
 

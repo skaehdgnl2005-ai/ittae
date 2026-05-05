@@ -37,7 +37,7 @@ export function WelcomeVoteBanner() {
               모임이 만들어졌어요!
             </p>
             <p className="mt-0.5 text-xs text-violet-700 dark:text-violet-300">
-              가능한 날짜와 시간을 선택한 뒤 <b>‘내 투표 저장하기’</b>를 눌러주세요.
+              가능한 시간을 선택한 뒤 <b>‘내 투표 저장하기’</b>를 눌러주세요.
             </p>
           </div>
           <button
