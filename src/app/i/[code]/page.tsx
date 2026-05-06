@@ -1,4 +1,5 @@
 // src/app/i/[code]/page.tsx
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
@@ -8,6 +9,24 @@ import { ROUTES } from "@/lib/routes";
 import { InviteAcceptCard } from "./InviteAcceptCard";
 
 type Props = { params: Promise<{ code: string }> };
+
+export async function generateMetadata(
+  { params }: Props
+): Promise<Metadata> {
+  const { code } = await params;
+  const target = await getInviteUserByCode(code);
+  if (!target) return {};
+
+  const nickname = target.nickname?.trim() || "친구";
+  const title = `${nickname}님이 친구 추가 요청을 보냈어요`;
+  const description = "된다에서 함께 모임을 잡아봐요";
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+  };
+}
 
 export default async function InvitePage({ params }: Props) {
   const { code } = await params;
