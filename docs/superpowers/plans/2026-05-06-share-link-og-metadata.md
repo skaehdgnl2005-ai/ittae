@@ -29,8 +29,11 @@
 
 - [ ] **Step 1: 헬퍼 파일 생성**
 
+같은 RSC 요청 안에서 `generateMetadata`와 page default export가 순차적으로 같은 헬퍼를 호출하므로, `React.cache()`로 감싸 1회 호출로 dedupe한다(헬퍼 내부에서 `createAdminClient()`를 새로 만들지 않게 됨).
+
 ```ts
 // src/lib/groups/getGroupByInviteCode.ts
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type GroupByInviteCode = {
@@ -42,23 +45,23 @@ export type GroupByInviteCode = {
   confirmed_end_time: string | null;
 };
 
-export async function getGroupByInviteCode(
-  code: string
-): Promise<GroupByInviteCode | null> {
-  const trimmed = code.trim();
-  if (trimmed.length === 0) return null;
+export const getGroupByInviteCode = cache(
+  async (code: string): Promise<GroupByInviteCode | null> => {
+    const trimmed = code.trim();
+    if (trimmed.length === 0) return null;
 
-  const admin = createAdminClient();
-  // confirmed_* 컬럼이 generated types에 누락돼 있어 (any) 캐스팅.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (admin as any)
-    .from("groups")
-    .select("id, name, status, confirmed_date, confirmed_start_time, confirmed_end_time")
-    .eq("invite_code", trimmed)
-    .maybeSingle();
+    const admin = createAdminClient();
+    // confirmed_* 컬럼이 generated types에 누락돼 있어 (any) 캐스팅.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (admin as any)
+      .from("groups")
+      .select("id, name, status, confirmed_date, confirmed_start_time, confirmed_end_time")
+      .eq("invite_code", trimmed)
+      .maybeSingle();
 
-  return (data as GroupByInviteCode | null) ?? null;
-}
+    return (data as GroupByInviteCode | null) ?? null;
+  }
+);
 ```
 
 - [ ] **Step 2: typecheck**
@@ -163,13 +166,16 @@ git commit -m "refactor(guest): inline group 쿼리를 getGroupByInviteCode 헬�
 **Files:**
 - Modify: `src/app/g/[code]/page.tsx`
 
-- [ ] **Step 1: `generateMetadata` 함수 추가**
+- [ ] **Step 1: 파일 상단 import에 `Metadata` 타입 추가**
 
-`type Props = { params: Promise<{ code: string }> };` 다음 줄에 추가:
-
+기존 import 그룹 상단에 한 줄 추가:
 ```ts
 import type { Metadata } from "next";
+```
 
+- [ ] **Step 2: `type Props = ...` 다음에 `generateMetadata` 함수 추가**
+
+```ts
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
@@ -193,7 +199,7 @@ export async function generateMetadata(
 }
 ```
 
-(주의: `Metadata` import는 파일 상단 import 그룹에 추가. 이미 `next` 관련 import가 있으면 그 옆에.)
+(`getGroupByInviteCode`가 `React.cache`로 감싸져 있어서 page default export에서 호출되는 두 번째 호출은 첫 호출 결과를 재사용 — DB 추가 쿼리 0.)
 
 - [ ] **Step 2: typecheck + lint**
 
@@ -206,26 +212,23 @@ Expected: PASS
 pnpm dev
 ```
 
-새 터미널에서 (실제 invite_code는 DB에서 확인):
+새 터미널에서 (실제 invite_code는 DB에서 확인). Windows PowerShell이면 `Select-String`, git bash나 macOS/Linux면 `grep` 사용:
+
+PowerShell:
+```powershell
+(Invoke-WebRequest http://localhost:3000/g/<voting상태_code>).Content | Select-String -Pattern '<title>|og:title|og:description'
+```
+
+git bash / *nix:
 ```bash
-curl -s http://localhost:3000/g/<voting상태인_code> | grep -E "<title>|og:title|og:description|<meta name=\"description\""
+curl -s http://localhost:3000/g/<voting상태_code> | grep -E "<title>|og:title|og:description"
 ```
 
 Expected: `<title>{group.name} 투표가 도착했어요</title>`, `og:title` / `og:description` 메타 태그 포함.
 
-확정 상태인 그룹이 있으면 그것도 확인:
-```bash
-curl -s http://localhost:3000/g/<confirmed상태인_code> | grep -E "<title>|og:title"
-```
+확정 상태인 그룹이 있으면 그것도 확인 — Expected: `{group.name} — 투표가 종료됐어요`.
 
-Expected: `{group.name} — 투표가 종료됐어요`
-
-유효하지 않은 code:
-```bash
-curl -s http://localhost:3000/g/invalid_code | grep -E "<title>"
-```
-
-Expected: 기본 title `된다 — 모임 일정 앱` (root layout 폴백).
+유효하지 않은 code (`http://localhost:3000/g/invalid_x` 등) — Expected: 기본 title `된다 — 모임 일정 앱` (root layout 폴백).
 
 - [ ] **Step 4: 커밋**
 
@@ -241,14 +244,13 @@ git commit -m "feat(meta): /g/[code] OG metadata — 모임 투표 링크 미리
 **Files:**
 - Modify: `src/app/i/[code]/page.tsx`
 
-- [ ] **Step 1: `generateMetadata` 함수 추가**
+- [ ] **Step 1: 파일 상단 import에 `Metadata` 타입 추가**
 
-파일 상단에 import 추가:
 ```ts
 import type { Metadata } from "next";
 ```
 
-`type Props = ...` 다음 줄에 함수 추가:
+- [ ] **Step 2: `type Props = ...` 다음에 `generateMetadata` 함수 추가**
 
 ```ts
 export async function generateMetadata(
@@ -270,14 +272,14 @@ export async function generateMetadata(
 }
 ```
 
-- [ ] **Step 2: typecheck + lint**
+- [ ] **Step 3: typecheck + lint**
 
 Run: `pnpm typecheck && pnpm lint`
 Expected: PASS
 
-- [ ] **Step 3: dev 서버에서 manual 검증**
+- [ ] **Step 4: dev 서버에서 manual 검증**
 
-(이미 dev 서버가 떠 있어야 함)
+(이미 dev 서버가 떠 있어야 함. PowerShell이면 `Invoke-WebRequest | Select-String`, git bash면 `curl | grep`.)
 
 ```bash
 curl -s http://localhost:3000/i/<유효한_invite_code> | grep -E "<title>|og:title|og:description"
@@ -285,14 +287,9 @@ curl -s http://localhost:3000/i/<유효한_invite_code> | grep -E "<title>|og:ti
 
 Expected: `<title>{nickname}님이 친구 추가 요청을 보냈어요</title>` 등.
 
-유효하지 않은 code:
-```bash
-curl -s http://localhost:3000/i/zzzzzz | grep -E "<title>"
-```
+유효하지 않은 code (`http://localhost:3000/i/zzzzzz`) — Expected: 기본 title `된다 — 모임 일정 앱`.
 
-Expected: 기본 title `된다 — 모임 일정 앱`.
-
-- [ ] **Step 4: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add src/app/i/[code]/page.tsx
@@ -329,33 +326,24 @@ git push
 
 ### Task 6: Vercel CLI로 프로덕션 배포
 
-**Prereq:** 프로젝트가 이미 Vercel에 연결돼 있음 (`harness-mu.vercel.app` 도메인 사용 중).
+**Prereq (검증 완료):**
+- `.vercel/project.json` 존재 — 프로젝트가 이미 link돼 있음 (`projectName: harness`, `harness-mu.vercel.app`)
+- `vercel --version` → CLI 설치됨
+- `vercel whoami` → 로그인됨
+- 인터랙티브 프롬프트 없이 바로 배포 가능
 
-- [ ] **Step 1: Vercel CLI 존재 확인**
-
-```bash
-vercel --version
-```
-
-없으면:
-```bash
-npm i -g vercel
-```
-
-- [ ] **Step 2: 프로덕션 배포**
+- [ ] **Step 1: 프로덕션 배포**
 
 프로젝트 루트에서:
 ```bash
-vercel --prod
+vercel --prod --yes
 ```
 
-처음 실행이면 link 단계가 먼저 일어남 (`Set up "~/harness"? Y` → `Which scope?` → `Link to existing project? Y` → 기존 프로젝트 선택).
+`--yes` 플래그로 어떤 잔여 프롬프트도 자동 승인. Expected: 배포 URL 출력 (`https://harness-mu.vercel.app` 또는 immutable preview URL).
 
-Expected: 배포 URL 출력.
+- [ ] **Step 2: 배포 후 OG 미리보기 검증**
 
-- [ ] **Step 3: 배포 후 OG 미리보기 검증**
-
-배포된 도메인에 대해 curl 테스트:
+배포된 도메인에 대해 curl 테스트 (PowerShell이면 `Invoke-WebRequest`):
 ```bash
 curl -s https://harness-mu.vercel.app/i/<유효한_code> | grep -E "<title>|og:title"
 curl -s https://harness-mu.vercel.app/g/<유효한_code> | grep -E "<title>|og:title"
