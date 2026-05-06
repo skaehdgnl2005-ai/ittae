@@ -80,7 +80,11 @@ export function FriendList({ users }: FriendListProps) {
           </motion.div>
         ))}
         {filtered.length === 0 && (
-          <p className="text-sm text-gray-400 py-4 text-center">검색 결과 없음</p>
+          <p className="text-sm text-gray-400 py-4 text-center">
+            {users.length === 0
+              ? "아직 친구가 없어요. 우측 상단 버튼으로 친구를 초대해보세요."
+              : "검색 결과 없음"}
+          </p>
         )}
       </motion.div>
     </div>
