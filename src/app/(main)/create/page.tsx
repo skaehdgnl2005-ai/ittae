@@ -5,32 +5,39 @@ import type { User } from "@/types";
 
 export default async function CreatePage() {
   const supabase = await createServerClient();
-
-  // 수락된 친구 id 수집
-  const [{ data: sent }, { data: received }] = await Promise.all([
-    supabase
-      .from("friendships")
-      .select("receiver_id")
-      .eq("status", "accepted"),
-    supabase
-      .from("friendships")
-      .select("requester_id")
-      .eq("status", "accepted"),
-  ]);
-
-  const friendIds = [
-    ...(sent ?? []).map((f) => f.receiver_id),
-    ...(received ?? []).map((f) => f.requester_id),
-  ];
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let friends: User[] = [];
 
-  if (friendIds.length > 0) {
-    const { data: usersData } = await supabase
-      .from("users")
-      .select("*")
-      .in("id", friendIds);
-    friends = (usersData ?? []).map(mapUser);
+  if (user) {
+    // 수락된 친구 id 수집 — RLS만 의존하지 않고 user.id로 명시 필터.
+    const [{ data: sent }, { data: received }] = await Promise.all([
+      supabase
+        .from("friendships")
+        .select("receiver_id")
+        .eq("requester_id", user.id)
+        .eq("status", "accepted"),
+      supabase
+        .from("friendships")
+        .select("requester_id")
+        .eq("receiver_id", user.id)
+        .eq("status", "accepted"),
+    ]);
+
+    const friendIds = [
+      ...(sent ?? []).map((f) => f.receiver_id),
+      ...(received ?? []).map((f) => f.requester_id),
+    ];
+
+    if (friendIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("*")
+        .in("id", friendIds);
+      friends = (usersData ?? []).map(mapUser);
+    }
   }
 
   return (
