@@ -1,21 +1,37 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getGroupByInviteCode } from "@/lib/groups/getGroupByInviteCode";
 import { GuestVoteClient } from "./GuestVoteClient";
 
 type Props = { params: Promise<{ code: string }> };
 
+export async function generateMetadata(
+  { params }: Props
+): Promise<Metadata> {
+  const { code } = await params;
+  const group = await getGroupByInviteCode(code);
+  if (!group) return {};
+
+  const isVoting = group.status === "voting";
+  const title = isVoting
+    ? `${group.name} 투표가 도착했어요`
+    : `${group.name} — 투표가 종료됐어요`;
+  const description = isVoting
+    ? "가능한 시간을 골라주세요"
+    : "탭해서 확정된 일정 보기";
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+  };
+}
+
 export default async function GuestGroupPage({ params }: Props) {
   const { code } = await params;
-  const admin = createAdminClient();
-
-  // confirmed_start_time/end_time이 supabase types에 없을 수 있어 (any) 캐스팅.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: group } = await (admin as any)
-    .from("groups")
-    .select("id, name, status, confirmed_date, confirmed_start_time, confirmed_end_time")
-    .eq("invite_code", code)
-    .maybeSingle();
+  const group = await getGroupByInviteCode(code);
 
   if (!group) {
     return (
@@ -34,6 +50,7 @@ export default async function GuestGroupPage({ params }: Props) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
+    const admin = createAdminClient();
     const { data: membership } = await admin
       .from("group_members")
       .select("group_id")
