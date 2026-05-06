@@ -80,7 +80,7 @@ export function VoteActionBar({
           <button
             onClick={onConfirm}
             disabled={!allVoted}
-            aria-label="일정 확정하기"
+            aria-label="일정 확정하러 가기"
             className={cn(
               "flex-1 h-[52px] rounded-xl text-[15px] font-semibold transition-all active:scale-[0.97]",
               allVoted
@@ -88,7 +88,7 @@ export function VoteActionBar({
                 : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
             )}
           >
-            {allVoted ? "일정 확정하기" : "투표 대기 중"}
+            {allVoted ? "일정 확정하러 가기" : "투표 대기 중"}
           </button>
         )}
       </div>

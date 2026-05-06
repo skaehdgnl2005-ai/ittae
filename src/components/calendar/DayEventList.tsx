@@ -47,7 +47,9 @@ function GoogleSourceBadge() {
 }
 
 export function DayEventList({ date, schedules, groups, onSelectSchedule }: DayEventListProps) {
-  const daySchedules = schedules.filter((s) => isSameDay(new Date(s.date), date));
+  const daySchedules = schedules
+    .filter((s) => isSameDay(new Date(s.date), date))
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
   const conflictingGroupIds = findConflictingGroupIds(daySchedules);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
