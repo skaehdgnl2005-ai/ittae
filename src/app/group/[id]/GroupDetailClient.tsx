@@ -198,6 +198,10 @@ export function GroupDetailClient({
   const hasMyVotes = Object.values(rangesByDate).some(
     (ranges) => ranges.length > 0
   );
+  const hasSavedBefore = useMemo(
+    () => votes.some((v) => v.userId === currentUserId),
+    [votes, currentUserId]
+  );
   const totalParticipants = group.members.length + group.guests.length;
   const othersTotal = Math.max(0, totalParticipants - 1);
 
@@ -285,6 +289,7 @@ export function GroupDetailClient({
 
           <VoteActionBar
             hasMyVotes={hasMyVotes}
+            hasSavedBefore={hasSavedBefore}
             isHost={isHost}
             allVoted={allVoted}
             onSaveMyVote={handleMyVoteSave}

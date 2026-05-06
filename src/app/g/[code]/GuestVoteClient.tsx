@@ -7,6 +7,7 @@ import { ROUTES } from "@/lib/routes";
 import { GuestNicknameModal } from "@/components/vote/GuestNicknameModal";
 import { BestTimeBanner } from "@/components/vote/BestTimeBanner";
 import { TimeGrid } from "@/components/vote/TimeGrid";
+import { VoteActionBar } from "@/components/vote/VoteActionBar";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
 import { useGuestRealtime } from "@/hooks/useGuestRealtime";
 import { getRankedTimeSlots } from "@/lib/vote";
@@ -143,28 +144,6 @@ function GuestVoteInner({
     pendingPersist,
   } = useTimeSlotSelection(myInitialSlots);
 
-  // 모든 후보 날짜에 대해 votes 자동 등록 (호스트 화면 흐름과 일치).
-  // 마운트 시 1회만 — 게스트가 진입했다는 것 자체로 "참여" 시그널.
-  const autoVotedRef = useRef(false);
-  useEffect(() => {
-    if (autoVotedRef.current) return;
-    if (!voteSession) return;
-    autoVotedRef.current = true;
-    for (const date of voteSession.candidateDates) {
-      const existing = votes.find(
-        (v) => v.guestId === currentGuestId && v.date === date
-      );
-      if (existing) continue;
-      guestFetch(`/api/invite/${code}/votes`, {
-        method: "POST",
-        token,
-        body: JSON.stringify({ date, choice: "available" }),
-      });
-    }
-    // votes는 마운트 시점만 본다 — 의존성에 넣으면 무한 루프.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voteSession, code, token, currentGuestId]);
-
   const lastPersistedNonce = useRef(0);
   useEffect(() => {
     if (!voteSession) return;
@@ -218,8 +197,51 @@ function GuestVoteInner({
   const rankedSlots = getRankedTimeSlots(effectiveTimeSlots, activeDates, 2);
   const othersTotal = Math.max(0, totalParticipants - 1);
 
+  const hasMyVotes = Object.values(rangesByDate).some(
+    (ranges) => ranges.length > 0
+  );
+  const hasSavedBefore = useMemo(
+    () => initialState.votes.some((v) => v.guestId === currentGuestId),
+    [initialState.votes, currentGuestId]
+  );
+
+  const handleMyVoteSave = useCallback(async () => {
+    if (!voteSession) return;
+
+    // 모든 후보 날짜를 "available"로 등록 — 회원 흐름과 동일.
+    const datePromises = voteSession.candidateDates.map((date) => {
+      const existing = votes.find(
+        (v) => v.guestId === currentGuestId && v.date === date
+      );
+      const method = existing ? "PATCH" : "POST";
+      return guestFetch(`/api/invite/${code}/votes`, {
+        method,
+        token,
+        body: JSON.stringify({ date, choice: "available" }),
+      });
+    });
+
+    // 시간 슬롯도 한 번 더 PUT (즉시 PUT effect와 별개로 명시적 저장).
+    const slotPromises = voteSession.candidateDates.map((date) => {
+      const ranges = getSelectedRanges(date);
+      return guestFetch(`/api/invite/${code}/time-slots`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({
+          date,
+          slots: ranges.map((r) => ({
+            startTime: r.startTime,
+            endTime: r.endTime,
+          })),
+        }),
+      });
+    });
+
+    await Promise.all([...datePromises, ...slotPromises]);
+  }, [voteSession, votes, currentGuestId, getSelectedRanges, code, token]);
+
   return (
-    <div className="bg-gray-50 min-h-dvh pb-[40px] dark:bg-gray-950">
+    <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
       <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
         <Link
           href={ROUTES.HOME}
@@ -251,6 +273,16 @@ function GuestVoteInner({
             othersTotal={othersTotal}
             onCellClick={(d, t) => handleCellClick(d, t)}
             onDragCommit={commitSweptSlots}
+          />
+
+          <VoteActionBar
+            hasMyVotes={hasMyVotes}
+            hasSavedBefore={hasSavedBefore}
+            isHost={false}
+            allVoted={false}
+            onSaveMyVote={handleMyVoteSave}
+            onConfirm={() => {}}
+            withBottomNav={false}
           />
         </>
       ) : (
