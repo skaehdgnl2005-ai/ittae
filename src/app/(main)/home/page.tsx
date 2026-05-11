@@ -1,12 +1,13 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { HomeCalendarView } from "@/components/calendar/HomeCalendarView";
-import Link from "next/link";
-import { Settings } from "lucide-react";
 import { LogoutButton } from "@/components/layout/LogoutButton";
+import { LoginButton } from "@/components/layout/LoginButton";
+import { SettingsLink } from "@/components/layout/SettingsLink";
 import { AddPersonalScheduleButton } from "@/components/calendar/AddPersonalScheduleButton";
 import { GoogleSyncIndicator } from "@/components/calendar/GoogleSyncIndicator";
 import { ReauthBanner } from "@/components/calendar/ReauthBanner";
 import { EverytimeImportButton } from "@/components/calendar/EverytimeImportButton";
+import { GoogleConnectButton } from "@/components/calendar/GoogleConnectButton";
 import { mapSchedule, mapGroup } from "@/lib/mappers";
 import { syncUserGoogleCalendar } from "@/lib/google/sync";
 import type { Schedule, Group } from "@/types";
@@ -29,7 +30,33 @@ function buildGroupSchedule(group: Group): Schedule | null {
   };
 }
 
-export default async function HomePage() {
+function buildGoogleStatusMessage(google: string | undefined) {
+  switch (google) {
+    case "connected":
+      return { kind: "success" as const, text: "구글 캘린더가 연결되었어요." };
+    case "invalid":
+      return { kind: "error" as const, text: "보안 검증에 실패했어요. 다시 시도해 주세요." };
+    case "error":
+      return { kind: "error" as const, text: "토큰 교환에 실패했어요." };
+    case "norefresh":
+      return {
+        kind: "error" as const,
+        text: "구글 보안 설정에서 우리 앱 접근 권한을 한 번 제거한 뒤 다시 연결해 주세요.",
+      };
+    case "db_error":
+      return { kind: "error" as const, text: "저장에 실패했어요. 다시 시도해 주세요." };
+    default:
+      return null;
+  }
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ google?: string }>;
+}) {
+  const params = await searchParams;
+  const googleStatus = buildGoogleStatusMessage(params.google);
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -103,30 +130,46 @@ export default async function HomePage() {
           된다
         </h1>
         <div className="flex items-center gap-1">
-          <AddPersonalScheduleButton />
-          <Link
-            href="/profile"
-            aria-label="프로필 / 설정"
-            className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all min-h-11 min-w-11 text-gray-600 dark:text-gray-400"
-          >
-            <Settings size={18} strokeWidth={1.8} />
-          </Link>
-          <LogoutButton />
+          <AddPersonalScheduleButton isAuthed={!!authUser} />
+          <SettingsLink isAuthed={!!authUser} />
+          {authUser ? <LogoutButton /> : <LoginButton />}
         </div>
       </div>
-      <ReauthBanner needsReauth={needsReauth} />
-      {syncedAt && (
-        <div className="px-5 pt-1">
-          <GoogleSyncIndicator syncedAt={syncedAt} />
-        </div>
+      {authUser && (
+        <>
+          <ReauthBanner needsReauth={needsReauth} />
+          {googleStatus && (
+            <p
+              className={
+                googleStatus.kind === "success"
+                  ? "px-5 pt-2 text-xs text-violet-700 dark:text-violet-300"
+                  : "px-5 pt-2 text-xs text-red-600 dark:text-red-400"
+              }
+            >
+              {googleStatus.text}
+            </p>
+          )}
+          {syncedAt && (
+            <div className="px-5 pt-1">
+              <GoogleSyncIndicator syncedAt={syncedAt} />
+            </div>
+          )}
+          <div className="px-5 pt-2 grid grid-cols-2 gap-2">
+            <EverytimeImportButton
+              hasExistingEverytime={hasEverytime}
+              existingCount={everytimeCount}
+            />
+            <GoogleConnectButton
+              connectedEmail={userInfo?.google_calendar_email ?? null}
+            />
+          </div>
+        </>
       )}
-      <div className="px-5 pt-2">
-        <EverytimeImportButton
-          hasExistingEverytime={hasEverytime}
-          existingCount={everytimeCount}
-        />
-      </div>
-      <HomeCalendarView schedules={allSchedules} groups={groups} />
+      <HomeCalendarView
+        schedules={allSchedules}
+        groups={groups}
+        isAuthed={!!authUser}
+      />
     </div>
   );
 }

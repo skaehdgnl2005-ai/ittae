@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 // OG 메타데이터의 절대 URL 생성 기준.
@@ -17,7 +18,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Toaster position="top-center" richColors closeButton={false} />
+      </body>
     </html>
   );
 }

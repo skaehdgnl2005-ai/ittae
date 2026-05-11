@@ -10,6 +10,7 @@ export const ROUTES = {
 
 export const PUBLIC_PATHS = [
   ROUTES.LOGIN,
+  ROUTES.HOME,
   "/auth",
   "/g/",
   "/api/invite/",
