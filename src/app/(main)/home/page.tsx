@@ -75,16 +75,21 @@ export default async function HomePage({
     { data: groupsData },
     userInfoRes,
   ] = await Promise.all([
-    supabase
-      .from("schedules")
-      .select("*")
-      .gte("date", `${year}-${monthStr}-01`)
-      .lte("date", toDate)
-      .order("date", { ascending: true }),
-    supabase
-      .from("groups")
-      .select("*")
-      .in("status", ["confirmed", "voting"]),
+    authUser
+      ? supabase
+          .from("schedules")
+          .select("*")
+          .eq("user_id", authUser.id)
+          .gte("date", `${year}-${monthStr}-01`)
+          .lte("date", toDate)
+          .order("date", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    authUser
+      ? supabase
+          .from("groups")
+          .select("*")
+          .in("status", ["confirmed", "voting"])
+      : Promise.resolve({ data: [] }),
     authUser
       ? supabase
           .from("users")
