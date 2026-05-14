@@ -102,11 +102,11 @@ export function VoteActionBar({
             "flex-1 h-[52px] rounded-xl text-[15px] font-semibold transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-1.5",
             justSaved
               ? "bg-violet-100 text-violet-700 ring-2 ring-violet-300/70 shadow-sm scale-[1.02] dark:bg-violet-900/40 dark:text-violet-200 dark:ring-violet-500/40"
-              : savedShown
-                ? "bg-white border border-violet-300 text-violet-700 hover:bg-violet-50 dark:bg-gray-900 dark:border-violet-700 dark:text-violet-300"
-                : hasMyVotes
-                  ? "bg-violet-600 text-white hover:bg-violet-700"
-                  : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+              : !hasMyVotes
+                ? "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                : savedShown
+                  ? "bg-white border border-violet-300 text-violet-700 hover:bg-violet-50 dark:bg-gray-900 dark:border-violet-700 dark:text-violet-300"
+                  : "bg-violet-600 text-white hover:bg-violet-700"
           )}
         >
           {justSaved && <Check size={18} strokeWidth={2.4} />}
