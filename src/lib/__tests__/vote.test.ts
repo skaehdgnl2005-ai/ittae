@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+  getAvailableParticipantsForSlot,
   getBestTimeSlot,
   getRankedTimeSlots,
   getTimeSlotHeatmap,
   TIME_SLOTS,
   getVoteSummary,
+  countVotedParticipants,
 } from "@/lib/vote";
 import type { VoteSession, Vote, TimeSlot } from "@/types";
 
@@ -16,10 +18,10 @@ const session: VoteSession = {
 };
 
 describe("TIME_SLOTS", () => {
-  it("has 16 slots from 12:00 to 19:30", () => {
-    expect(TIME_SLOTS).toHaveLength(16);
-    expect(TIME_SLOTS[0]).toBe("12:00");
-    expect(TIME_SLOTS[15]).toBe("19:30");
+  it("has 28 slots from 09:00 to 22:30", () => {
+    expect(TIME_SLOTS).toHaveLength(28);
+    expect(TIME_SLOTS[0]).toBe("09:00");
+    expect(TIME_SLOTS[27]).toBe("22:30");
   });
 });
 
@@ -56,8 +58,53 @@ describe("getTimeSlotHeatmap", () => {
 
   it("returns all zeros for empty slots", () => {
     const heatmap = getTimeSlotHeatmap([], "2026-04-25");
-    expect(heatmap["12:00"]).toBe(0);
-    expect(heatmap["19:30"]).toBe(0);
+    expect(heatmap["09:00"]).toBe(0);
+    expect(heatmap["22:30"]).toBe(0);
+  });
+});
+
+describe("getAvailableParticipantsForSlot", () => {
+  it("returns members covering the given time", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "16:00" },
+      { id: "t2", sessionId: "vs1", userId: "u2", date: "2026-04-25", startTime: "15:00", endTime: "17:00" },
+    ];
+    const at1500 = getAvailableParticipantsForSlot(slots, "2026-04-25", "15:00");
+    expect(at1500.memberIds.sort()).toEqual(["u1", "u2"]);
+    expect(at1500.guestIds).toEqual([]);
+  });
+
+  it("treats startTime as inclusive and endTime as exclusive", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+    ];
+    expect(getAvailableParticipantsForSlot(slots, "2026-04-25", "14:00").memberIds).toEqual(["u1"]);
+    expect(getAvailableParticipantsForSlot(slots, "2026-04-25", "15:00").memberIds).toEqual([]);
+  });
+
+  it("separates members and guests", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+      { id: "t2", sessionId: "vs1", userId: null, guestId: "g1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+    ];
+    const result = getAvailableParticipantsForSlot(slots, "2026-04-25", "14:30");
+    expect(result.memberIds).toEqual(["u1"]);
+    expect(result.guestIds).toEqual(["g1"]);
+  });
+
+  it("filters out other dates", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-26", startTime: "14:00", endTime: "15:00" },
+    ];
+    expect(getAvailableParticipantsForSlot(slots, "2026-04-25", "14:30").memberIds).toEqual([]);
+  });
+
+  it("dedupes when one user has overlapping ranges", () => {
+    const slots: TimeSlot[] = [
+      { id: "t1", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:00", endTime: "15:00" },
+      { id: "t2", sessionId: "vs1", userId: "u1", date: "2026-04-25", startTime: "14:30", endTime: "15:30" },
+    ];
+    expect(getAvailableParticipantsForSlot(slots, "2026-04-25", "14:30").memberIds).toEqual(["u1"]);
   });
 });
 
@@ -159,5 +206,39 @@ describe("getRankedTimeSlots", () => {
     expect(result[0].date).toBe("2026-04-26");
     expect(result[0].endTime).toBe("17:00");
     expect(result[1].date).toBe("2026-04-25");
+  });
+});
+
+describe("countVotedParticipants", () => {
+  it("returns 0 for empty array", () => {
+    expect(countVotedParticipants([])).toBe(0);
+  });
+
+  it("counts same user voting on 3 dates as 1", () => {
+    const votes: Vote[] = [
+      { id: "v1", sessionId: "vs1", userId: "u1", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v2", sessionId: "vs1", userId: "u1", date: "2026-04-26", choice: "available", comment: null },
+      { id: "v3", sessionId: "vs1", userId: "u1", date: "2026-04-27", choice: "available", comment: null },
+    ];
+    expect(countVotedParticipants(votes)).toBe(1);
+  });
+
+  it("counts 2 users + 3 guests as 5", () => {
+    const votes: Vote[] = [
+      { id: "v1", sessionId: "vs1", userId: "u1", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v2", sessionId: "vs1", userId: "u2", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v3", sessionId: "vs1", userId: null, guestId: "g1", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v4", sessionId: "vs1", userId: null, guestId: "g2", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v5", sessionId: "vs1", userId: null, guestId: "g3", date: "2026-04-25", choice: "available", comment: null },
+    ];
+    expect(countVotedParticipants(votes)).toBe(5);
+  });
+
+  it("treats userId='abc' and guestId='abc' as distinct (prefix isolation)", () => {
+    const votes: Vote[] = [
+      { id: "v1", sessionId: "vs1", userId: "abc", date: "2026-04-25", choice: "available", comment: null },
+      { id: "v2", sessionId: "vs1", userId: null, guestId: "abc", date: "2026-04-25", choice: "available", comment: null },
+    ];
+    expect(countVotedParticipants(votes)).toBe(2);
   });
 });

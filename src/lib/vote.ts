@@ -1,10 +1,10 @@
 import type { Vote, VoteSession, TimeSlot } from "@/types";
 
-/** 12:00–19:30, 30분 간격, 16개 슬롯 */
-export const TIME_SLOTS: string[] = Array.from({ length: 16 }, (_, i) => {
-  const hour = 12 + Math.floor(i / 2);
+/** 09:00–22:30, 30분 간격, 28개 슬롯 */
+export const TIME_SLOTS: string[] = Array.from({ length: 28 }, (_, i) => {
+  const hour = 9 + Math.floor(i / 2);
   const min = i % 2 === 0 ? "00" : "30";
-  return `${hour}:${min}`;
+  return `${String(hour).padStart(2, "0")}:${min}`;
 });
 
 type VoteSummary = Record<string, { available: number; unavailable: number }>;
@@ -79,6 +79,35 @@ export function getTimeSlotHeatmap(
   return heatmap;
 }
 
+/**
+ * 특정 (date, time) 슬롯에 대해 가용한 참여자 ID를 분리해 반환한다.
+ * 슬롯 포함 판단은 getTimeSlotHeatmap과 동일: startTime <= time < endTime.
+ * userId/guestId 어느 쪽도 없는 슬롯은 무시한다.
+ */
+export function getAvailableParticipantsForSlot(
+  slots: TimeSlot[],
+  date: string,
+  time: string
+): { memberIds: string[]; guestIds: string[] } {
+  const memberIds = new Set<string>();
+  const guestIds = new Set<string>();
+
+  for (const slot of slots) {
+    if (slot.date !== date) continue;
+    if (time < slot.startTime || time >= slot.endTime) continue;
+    if (slot.userId) {
+      memberIds.add(slot.userId);
+    } else if (slot.guestId) {
+      guestIds.add(slot.guestId);
+    }
+  }
+
+  return {
+    memberIds: Array.from(memberIds),
+    guestIds: Array.from(guestIds),
+  };
+}
+
 export type BestTimeResult = {
   date: string;
   startTime: string;
@@ -93,7 +122,9 @@ function slotMinutes(t: string): number {
 
 function endTimeOf(slot: string): string {
   const [h, m] = slot.split(":").map(Number);
-  return m === 30 ? `${h + 1}:00` : `${h}:30`;
+  const nextH = m === 30 ? h + 1 : h;
+  const nextMin = m === 30 ? "00" : "30";
+  return `${String(nextH).padStart(2, "0")}:${nextMin}`;
 }
 
 /**
@@ -185,4 +216,18 @@ export function getBestTimeSlot(
   dates: string[]
 ): BestTimeResult | null {
   return getRankedTimeSlots(slots, dates, 1)[0] ?? null;
+}
+
+/**
+ * 투표한 고유 참여자 수를 반환한다.
+ * 같은 사용자가 여러 날짜에 투표해도 1로 카운트한다.
+ * userId="abc"와 guestId="abc"는 프리픽스로 분리해 별도 인원으로 본다.
+ */
+export function countVotedParticipants(votes: Vote[]): number {
+  const ids = new Set<string>();
+  votes.forEach((v) => {
+    if (v.userId) ids.add(`u:${v.userId}`);
+    if (v.guestId) ids.add(`g:${v.guestId}`);
+  });
+  return ids.size;
 }
