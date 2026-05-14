@@ -8,9 +8,10 @@ import { GuestNicknameModal } from "@/components/vote/GuestNicknameModal";
 import { BestTimeBanner } from "@/components/vote/BestTimeBanner";
 import { TimeGrid } from "@/components/vote/TimeGrid";
 import { VoteActionBar } from "@/components/vote/VoteActionBar";
+import { SlotPeekSheet } from "@/components/vote/SlotPeekSheet";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
 import { useGuestRealtime } from "@/hooks/useGuestRealtime";
-import { getRankedTimeSlots } from "@/lib/vote";
+import { getRankedTimeSlots, countVotedParticipants } from "@/lib/vote";
 import {
   getGuestToken,
   setGuestToken,
@@ -144,6 +145,11 @@ function GuestVoteInner({
     pendingPersist,
   } = useTimeSlotSelection(myInitialSlots);
 
+  const [peekMode, setPeekMode] = useState(false);
+  const [peekSlot, setPeekSlot] = useState<{ date: string; time: string } | null>(
+    null
+  );
+
   const lastPersistedNonce = useRef(0);
   useEffect(() => {
     if (!voteSession) return;
@@ -204,6 +210,15 @@ function GuestVoteInner({
     () => initialState.votes.some((v) => v.guestId === currentGuestId),
     [initialState.votes, currentGuestId]
   );
+  const mySlotCount = useMemo(
+    () =>
+      Object.values(rangesByDate).reduce(
+        (sum, ranges) => sum + ranges.length,
+        0
+      ),
+    [rangesByDate]
+  );
+  const votedCount = useMemo(() => countVotedParticipants(votes), [votes]);
 
   const handleMyVoteSave = useCallback(async () => {
     if (!voteSession) return;
@@ -241,8 +256,8 @@ function GuestVoteInner({
   }, [voteSession, votes, currentGuestId, getSelectedRanges, code, token]);
 
   return (
-    <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
-      <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
+    <div className="bg-gray-50 h-dvh flex flex-col dark:bg-gray-950">
+      <div className="flex-none flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
         <Link
           href={ROUTES.HOME}
           aria-label="홈으로"
@@ -262,17 +277,33 @@ function GuestVoteInner({
 
       {voteSession ? (
         <>
-          <BestTimeBanner slots={rankedSlots} totalMembers={totalParticipants} />
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <BestTimeBanner slots={rankedSlots} totalMembers={totalParticipants} />
 
-          <TimeGrid
-            dates={voteSession.candidateDates}
-            dateChoices={dateChoices}
-            isSlotSelected={isSlotSelected}
-            pendingStart={pendingStart}
-            othersTimeSlots={othersTimeSlots}
-            othersTotal={othersTotal}
-            onCellClick={(d, t) => handleCellClick(d, t)}
-            onDragCommit={commitSweptSlots}
+            <TimeGrid
+              dates={voteSession.candidateDates}
+              dateChoices={dateChoices}
+              isSlotSelected={isSlotSelected}
+              pendingStart={pendingStart}
+              othersTimeSlots={othersTimeSlots}
+              othersTotal={othersTotal}
+              peekMode={peekMode}
+              onPeekModeChange={setPeekMode}
+              onCellClick={(d, t) => handleCellClick(d, t)}
+              onDragCommit={commitSweptSlots}
+              onPeekClick={(date, time) => setPeekSlot({ date, time })}
+            />
+          </div>
+
+          <SlotPeekSheet
+            open={peekSlot !== null}
+            onOpenChange={(o) => {
+              if (!o) setPeekSlot(null);
+            }}
+            slot={peekSlot}
+            timeSlots={effectiveTimeSlots}
+            members={group.members}
+            guests={group.guests}
           />
 
           <VoteActionBar
@@ -280,9 +311,12 @@ function GuestVoteInner({
             hasSavedBefore={hasSavedBefore}
             isHost={false}
             allVoted={false}
+            mySlotCount={mySlotCount}
+            votedCount={votedCount}
+            totalParticipants={totalParticipants}
             onSaveMyVote={handleMyVoteSave}
             onConfirm={() => {}}
-            withBottomNav={false}
+            inline
           />
         </>
       ) : (

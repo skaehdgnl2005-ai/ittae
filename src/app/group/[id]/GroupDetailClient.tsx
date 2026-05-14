@@ -8,9 +8,15 @@ import { VoteActionBar } from "@/components/vote/VoteActionBar";
 import { ConfirmActionBar } from "@/components/vote/ConfirmActionBar";
 import { WelcomeVoteBanner } from "@/components/vote/WelcomeVoteBanner";
 import { CommentSection } from "@/components/vote/CommentSection";
+import { SlotPeekSheet } from "@/components/vote/SlotPeekSheet";
 import { useVoteRealtime } from "@/hooks/useVoteRealtime";
 import { useTimeSlotSelection } from "@/hooks/useTimeSlotSelection";
-import { getRankedTimeSlots, isAllVoted, type BestTimeResult } from "@/lib/vote";
+import {
+  getRankedTimeSlots,
+  isAllVoted,
+  countVotedParticipants,
+  type BestTimeResult,
+} from "@/lib/vote";
 import type { Vote, VoteChoice, VoteSession, Group, TimeSlot } from "@/types";
 import { ChevronLeft, Link2, Check } from "lucide-react";
 
@@ -64,6 +70,10 @@ export function GroupDetailClient({
   const confirmHook = useTimeSlotSelection([]);
 
   const [mode, setMode] = useState<"vote" | "confirm">("vote");
+  const [peekMode, setPeekMode] = useState(false);
+  const [peekSlot, setPeekSlot] = useState<{ date: string; time: string } | null>(
+    null
+  );
 
   // 사용자가 시간 슬롯을 직접 변경했을 때만 (마운트 시점 PUT 발사 X) 서버에 저장.
   // pendingPersist.nonce는 사용자 액션이 있을 때만 증가한다.
@@ -181,6 +191,15 @@ export function GroupDetailClient({
     () => votes.some((v) => v.userId === currentUserId),
     [votes, currentUserId]
   );
+  const mySlotCount = useMemo(
+    () =>
+      Object.values(voteHook.rangesByDate).reduce(
+        (sum, ranges) => sum + ranges.length,
+        0
+      ),
+    [voteHook.rangesByDate]
+  );
+  const votedCount = useMemo(() => countVotedParticipants(votes), [votes]);
   const totalParticipants = group.members.length + group.guests.length;
   const othersTotal = Math.max(0, totalParticipants - 1);
 
@@ -259,8 +278,8 @@ export function GroupDetailClient({
   const heatmapTotal = mode === "confirm" ? totalParticipants : othersTotal;
 
   return (
-    <div className="bg-gray-50 min-h-dvh pb-[140px] dark:bg-gray-950">
-      <div className="flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
+    <div className="bg-gray-50 h-dvh flex flex-col dark:bg-gray-950">
+      <div className="flex-none flex items-center gap-3 px-5 pt-5 pb-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
         <button
           onClick={() => router.back()}
           aria-label="뒤로"
@@ -294,13 +313,13 @@ export function GroupDetailClient({
         </button>
       </div>
       {linkCopied && (
-        <div className="mx-5 mt-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-xs text-violet-700 dark:text-violet-300 text-center">
+        <div className="flex-none mx-5 mt-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-xs text-violet-700 dark:text-violet-300 text-center">
           링크가 복사되었어요!
         </div>
       )}
 
       {confirmed ? (
-        <div className="px-5 mt-8 text-center">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 mt-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 px-6 py-4">
             <span className="text-2xl">🎉</span>
             <div className="text-left">
@@ -316,35 +335,51 @@ export function GroupDetailClient({
         </div>
       ) : voteSession ? (
         <>
-          {mode === "confirm" ? (
-            <div className="mx-5 mt-3 px-3 py-2 rounded-lg bg-gray-900 text-white text-xs text-center dark:bg-gray-100 dark:text-gray-900">
-              순위에서 고르거나 시간표에서 직접 선택해 주세요
-            </div>
-          ) : (
-            <WelcomeVoteBanner />
-          )}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {mode === "confirm" ? (
+              <div className="mx-5 mt-3 px-3 py-2 rounded-lg bg-gray-900 text-white text-xs text-center dark:bg-gray-100 dark:text-gray-900">
+                순위에서 고르거나 시간표에서 직접 선택해 주세요
+              </div>
+            ) : (
+              <WelcomeVoteBanner />
+            )}
 
-          <BestTimeBanner
-            slots={rankedSlots}
-            totalMembers={totalParticipants}
-            onPickRank={mode === "confirm" ? handlePickRank : undefined}
-            selectedSlot={mode === "confirm" ? pickedSlot : null}
+            <BestTimeBanner
+              slots={rankedSlots}
+              totalMembers={totalParticipants}
+              onPickRank={mode === "confirm" ? handlePickRank : undefined}
+              selectedSlot={mode === "confirm" ? pickedSlot : null}
+            />
+
+            <TimeGrid
+              dates={voteSession.candidateDates}
+              dateChoices={dateChoices}
+              isSlotSelected={activeHook.isSlotSelected}
+              pendingStart={activeHook.pendingStart}
+              othersTimeSlots={heatmapSource}
+              othersTotal={heatmapTotal}
+              peekMode={peekMode}
+              onPeekModeChange={setPeekMode}
+              onCellClick={activeHook.handleCellClick}
+              onDragCommit={activeHook.commitSweptSlots}
+              onPeekClick={(date, time) => setPeekSlot({ date, time })}
+            />
+
+            {mode === "vote" && (
+              <CommentSection votes={votes} members={group.members} />
+            )}
+          </div>
+
+          <SlotPeekSheet
+            open={peekSlot !== null}
+            onOpenChange={(o) => {
+              if (!o) setPeekSlot(null);
+            }}
+            slot={peekSlot}
+            timeSlots={effectiveTimeSlots}
+            members={group.members}
+            guests={group.guests}
           />
-
-          <TimeGrid
-            dates={voteSession.candidateDates}
-            dateChoices={dateChoices}
-            isSlotSelected={activeHook.isSlotSelected}
-            pendingStart={activeHook.pendingStart}
-            othersTimeSlots={heatmapSource}
-            othersTotal={heatmapTotal}
-            onCellClick={activeHook.handleCellClick}
-            onDragCommit={activeHook.commitSweptSlots}
-          />
-
-          {mode === "vote" && (
-            <CommentSection votes={votes} members={group.members} />
-          )}
 
           {mode === "vote" ? (
             <VoteActionBar
@@ -352,19 +387,24 @@ export function GroupDetailClient({
               hasSavedBefore={hasSavedBefore}
               isHost={isHost}
               allVoted={allVoted}
+              mySlotCount={mySlotCount}
+              votedCount={votedCount}
+              totalParticipants={totalParticipants}
               onSaveMyVote={handleMyVoteSave}
               onConfirm={handleEnterConfirm}
+              inline
             />
           ) : (
             <ConfirmActionBar
               pickedSlot={pickedSlot}
               onCancel={handleCancelConfirm}
               onConfirm={handleConfirmFinalize}
+              inline
             />
           )}
         </>
       ) : (
-        <p className="px-5 mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="flex-1 px-5 mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
           투표 세션이 없습니다.
         </p>
       )}

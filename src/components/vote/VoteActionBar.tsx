@@ -15,6 +15,12 @@ type VoteActionBarProps = {
   withBottomNav?: boolean;
   /** flex column 페이지 안에서 자연 흐름으로 배치할 때 true. fixed 포지셔닝 제거. */
   inline?: boolean;
+  /** 내가 선택한 시간 구간 개수 (status line 표시용) */
+  mySlotCount: number;
+  /** 투표 완료한 참여자 수 (호스트 우측 버튼 라벨용) */
+  votedCount: number;
+  /** 전체 참여자 수 (호스트 우측 버튼 라벨용) */
+  totalParticipants: number;
 };
 
 export function VoteActionBar({
@@ -26,6 +32,9 @@ export function VoteActionBar({
   onConfirm,
   withBottomNav = true,
   inline = false,
+  mySlotCount,
+  votedCount,
+  totalParticipants,
 }: VoteActionBarProps) {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(0);
@@ -51,8 +60,10 @@ export function VoteActionBar({
     : justSaved
       ? "저장됐어요!"
       : showAsResubmit
-        ? "다시 등록하기"
+        ? "투표 수정하기"
         : "투표 등록하기";
+
+  const savedShown = showAsResubmit && !justSaved;
 
   return (
     <div
@@ -66,6 +77,22 @@ export function VoteActionBar({
             )
       )}
     >
+      {savedShown && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 dark:bg-violet-900/20 dark:border-violet-800/60"
+        >
+          <Check
+            size={14}
+            strokeWidth={2.5}
+            className="text-violet-600 dark:text-violet-400 shrink-0"
+          />
+          <span className="text-[12px] font-medium text-violet-700 dark:text-violet-300">
+            내 투표 저장됨 · 시간 {mySlotCount}구간 선택
+          </span>
+        </div>
+      )}
       <div className="flex gap-2">
         <button
           onClick={handleSave}
@@ -75,9 +102,11 @@ export function VoteActionBar({
             "flex-1 h-[52px] rounded-xl text-[15px] font-semibold transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-1.5",
             justSaved
               ? "bg-violet-100 text-violet-700 ring-2 ring-violet-300/70 shadow-sm scale-[1.02] dark:bg-violet-900/40 dark:text-violet-200 dark:ring-violet-500/40"
-              : hasMyVotes
-                ? "bg-violet-600 text-white hover:bg-violet-700"
-                : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+              : savedShown
+                ? "bg-white border border-violet-300 text-violet-700 hover:bg-violet-50 dark:bg-gray-900 dark:border-violet-700 dark:text-violet-300"
+                : hasMyVotes
+                  ? "bg-violet-600 text-white hover:bg-violet-700"
+                  : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
           )}
         >
           {justSaved && <Check size={18} strokeWidth={2.4} />}
@@ -88,7 +117,7 @@ export function VoteActionBar({
           <button
             onClick={onConfirm}
             disabled={!allVoted}
-            aria-label="일정 확정하러 가기"
+            aria-label={allVoted ? "일정 확정하러 가기" : `${totalParticipants}명 중 ${votedCount}명 투표 중`}
             className={cn(
               "flex-1 h-[52px] rounded-xl text-[15px] font-semibold transition-all active:scale-[0.97]",
               allVoted
@@ -96,7 +125,9 @@ export function VoteActionBar({
                 : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
             )}
           >
-            {allVoted ? "일정 확정하러 가기" : "투표 대기 중"}
+            {allVoted
+              ? "일정 확정하러 가기"
+              : `${totalParticipants}명 중 ${votedCount}명 투표 중`}
           </button>
         )}
       </div>
