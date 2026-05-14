@@ -22,6 +22,8 @@ export type Group = {
   hostId: string;
   status: GroupStatus;
   confirmedDate: string | null;
+  confirmedStartTime: string | null;
+  confirmedEndTime: string | null;
   placeId: string | null;
   createdAt: string;
   inviteCode: string | null;
@@ -79,16 +81,6 @@ export type TimeSlot = {
   endTime: string;    // "HH:MM"
 };
 
-export type Memory = {
-  id: string;
-  groupId: string;
-  date: string;
-  placeId: string;
-  photos: string[];
-  note: string | null;
-  participants: User[];
-};
-
 export type ScheduleSource = "manual" | "google" | "everytime";
 
 export type Schedule = {
@@ -117,5 +109,11 @@ export type UserSearchResult = PublicUser & { relationship: RelationshipStatus }
 export type PendingFriendRequest = {
   requesterId: string;
   requester: PublicUser;
+  createdAt: string;
+};
+
+export type SentFriendRequest = {
+  receiverId: string;
+  receiver: PublicUser;
   createdAt: string;
 };

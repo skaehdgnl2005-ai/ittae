@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import { KakaoSdkInitializer } from "@/components/KakaoSdkInitializer";
 import "./globals.css";
 
 // OG 메타데이터의 절대 URL 생성 기준.
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body suppressHydrationWarning>
+        <KakaoSdkInitializer />
         {children}
         <Toaster position="top-center" richColors closeButton={false} />
       </body>

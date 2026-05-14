@@ -18,7 +18,9 @@ import {
   type BestTimeResult,
 } from "@/lib/vote";
 import type { Vote, VoteChoice, VoteSession, Group, TimeSlot } from "@/types";
-import { ChevronLeft, Link2, Check } from "lucide-react";
+import { ChevronLeft, Link2 } from "lucide-react";
+import { toast } from "sonner";
+import { shareGroupLink } from "@/lib/share";
 
 type Props = {
   group: Group;
@@ -140,16 +142,26 @@ export function GroupDetailClient({
   const allVoted = voteSession ? isAllVoted(voteSession, votes, memberIds) : false;
   const isHost = group.hostId === currentUserId;
   const confirmed = group.status === "confirmed";
-  const [linkCopied, setLinkCopied] = useState(false);
-
-  const handleCopyLink = useCallback(async () => {
+  const handleShare = useCallback(async () => {
     const target = group.inviteCode
       ? `${window.location.origin}/g/${group.inviteCode}`
       : window.location.href;
-    await navigator.clipboard.writeText(target);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  }, [group.inviteCode]);
+    const r = await shareGroupLink({
+      url: target,
+      groupName: group.name,
+      status: group.status,
+      confirmedDate: group.confirmedDate,
+      confirmedStartTime: group.confirmedStartTime,
+      confirmedEndTime: group.confirmedEndTime,
+    });
+    if (r === "kakao") {
+      toast.success("카카오톡 공유 창을 열었어요");
+    } else if (r === "clipboard") {
+      toast.success("링크가 복사되었어요!");
+    } else {
+      toast.error("공유에 실패했어요");
+    }
+  }, [group]);
 
   const activeDates = useMemo(
     () => (voteSession ? voteSession.candidateDates : []),
@@ -301,22 +313,13 @@ export function GroupDetailClient({
           </p>
         </div>
         <button
-          onClick={handleCopyLink}
-          aria-label="초대 링크 복사"
+          onClick={handleShare}
+          aria-label="모임 링크 공유"
           className="min-h-11 min-w-11 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
         >
-          {linkCopied ? (
-            <Check size={18} className="text-violet-600 dark:text-violet-400" strokeWidth={2} />
-          ) : (
-            <Link2 size={18} className="text-gray-600 dark:text-gray-400" strokeWidth={1.5} />
-          )}
+          <Link2 size={18} className="text-gray-600 dark:text-gray-400" strokeWidth={1.5} />
         </button>
       </div>
-      {linkCopied && (
-        <div className="flex-none mx-5 mt-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-xs text-violet-700 dark:text-violet-300 text-center">
-          링크가 복사되었어요!
-        </div>
-      )}
 
       {confirmed ? (
         <div className="flex-1 min-h-0 overflow-y-auto px-5 mt-8 text-center">
