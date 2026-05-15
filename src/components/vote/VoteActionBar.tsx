@@ -117,7 +117,11 @@ export function VoteActionBar({
           <button
             onClick={onConfirm}
             disabled={!allVoted}
-            aria-label={allVoted ? "일정 확정하러 가기" : `${totalParticipants}명 중 ${votedCount}명 투표 중`}
+            aria-label={
+              allVoted
+                ? "일정 확정하러 가기"
+                : `일정 확정 대기 — ${totalParticipants}명 중 ${votedCount}명 투표 완료`
+            }
             className={cn(
               "flex-1 h-[52px] rounded-xl text-[15px] font-semibold transition-all active:scale-[0.97]",
               allVoted
@@ -127,7 +131,7 @@ export function VoteActionBar({
           >
             {allVoted
               ? "일정 확정하러 가기"
-              : `${totalParticipants}명 중 ${votedCount}명 투표 중`}
+              : `일정 확정 대기 (${votedCount}/${totalParticipants})`}
           </button>
         )}
       </div>
