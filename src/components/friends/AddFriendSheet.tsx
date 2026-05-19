@@ -71,7 +71,7 @@ export function AddFriendSheet({ open, onClose, myInviteCode, myNickname }: Prop
   async function handleShare() {
     const r = await shareInviteLink({ url: inviteUrl, hostNickname: myNickname });
     setShareToast(
-      r === "kakao" ? "카카오톡 공유 창을 열었어요"
+      r === "shared" ? "공유 시트를 열었어요"
         : r === "clipboard" ? "초대 링크를 복사했어요"
         : "공유에 실패했어요"
     );

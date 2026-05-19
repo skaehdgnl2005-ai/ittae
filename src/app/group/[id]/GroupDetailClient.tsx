@@ -154,8 +154,8 @@ export function GroupDetailClient({
       confirmedStartTime: group.confirmedStartTime,
       confirmedEndTime: group.confirmedEndTime,
     });
-    if (r === "kakao") {
-      toast.success("카카오톡 공유 창을 열었어요");
+    if (r === "shared") {
+      toast.success("공유 시트를 열었어요");
     } else if (r === "clipboard") {
       toast.success("링크가 복사되었어요!");
     } else {
