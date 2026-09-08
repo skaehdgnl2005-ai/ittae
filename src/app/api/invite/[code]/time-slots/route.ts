@@ -37,10 +37,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
   const sessionId = session.id;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = admin as any;
-
-  const { error: delErr } = await sb
+  const { error: delErr } = await admin
     .from("time_slots")
     .delete()
     .eq("session_id", sessionId)
@@ -63,11 +60,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     end_time: s.endTime,
   }));
 
-  const { data, error: insErr } = await sb.from("time_slots").insert(rows).select();
+  const { data, error: insErr } = await admin.from("time_slots").insert(rows).select();
   if (insErr) {
     return NextResponse.json({ error: insErr.message }, { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return NextResponse.json({ data: ((data ?? []) as any[]).map(mapTimeSlot) });
+  return NextResponse.json({ data: (data ?? []).map(mapTimeSlot) });
 }

@@ -47,7 +47,9 @@ export function formatDateShort(date: Date): string {
 
 export function formatTime(time: string): string {
   // "14:00" → "오후 2:00"
+  if (!time) return "";
   const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
   const period = h < 12 ? "오전" : "오후";
   const hour = h % 12 === 0 ? 12 : h % 12;
   return `${period} ${hour}:${m.toString().padStart(2, "0")}`;

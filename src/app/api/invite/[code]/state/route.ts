@@ -56,14 +56,12 @@ export async function GET(request: Request, { params }: Params) {
   let votes: ReturnType<typeof mapVote>[] = [];
   let timeSlots: ReturnType<typeof mapTimeSlot>[] = [];
   if (sessionRow) {
-    const [{ data: voteRows }, tsResult] = await Promise.all([
+    const [{ data: voteRows }, { data: tsRows }] = await Promise.all([
       admin.from("votes").select("*").eq("session_id", sessionRow.id),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (admin as any).from("time_slots").select("*").eq("session_id", sessionRow.id),
+      admin.from("time_slots").select("*").eq("session_id", sessionRow.id),
     ]);
     votes = (voteRows ?? []).map(mapVote);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    timeSlots = ((tsResult.data ?? []) as any[]).map(mapTimeSlot);
+    timeSlots = (tsRows ?? []).map(mapTimeSlot);
   }
 
   return NextResponse.json({

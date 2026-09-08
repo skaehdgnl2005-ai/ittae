@@ -34,7 +34,6 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // confirmed_start_time, confirmed_end_time are added by migration 002 but not yet in generated types
   const updatePayload = {
     status: "confirmed" as const,
     confirmed_date: body.confirmedDate,
@@ -44,8 +43,7 @@ export async function POST(
 
   const { data: updated, error } = await supabase
     .from("groups")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update(updatePayload as any)
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single();

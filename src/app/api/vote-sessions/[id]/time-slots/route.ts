@@ -12,9 +12,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const { id: sessionId } = await params;
   const supabase = await createServerClient();
 
-  // time_slots not yet in generated Supabase types — cast to any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("time_slots")
     .select("*")
     .eq("session_id", sessionId);
@@ -23,8 +21,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return NextResponse.json({ data: ((data ?? []) as any[]).map(mapTimeSlot) });
+  return NextResponse.json({ data: (data ?? []).map(mapTimeSlot) });
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
@@ -38,11 +35,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   const supabase = await createServerClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
-
   // Delete existing slots for this user+date
-  const { error: deleteError } = await sb
+  const { error: deleteError } = await supabase
     .from("time_slots")
     .delete()
     .eq("session_id", sessionId)
@@ -66,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     end_time: s.endTime,
   }));
 
-  const { data, error: insertError } = await sb
+  const { data, error: insertError } = await supabase
     .from("time_slots")
     .insert(rows)
     .select();
@@ -75,6 +69,5 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return NextResponse.json({ data: ((data ?? []) as any[]).map(mapTimeSlot) });
+  return NextResponse.json({ data: (data ?? []).map(mapTimeSlot) });
 }

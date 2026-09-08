@@ -14,6 +14,7 @@ type TimeColumnProps = {
   othersHeatmap: Record<string, number>;
   /** 다른 사람 총 수 (멤버 - 1) */
   othersTotal: number;
+  peekMode?: boolean;
   onCellClick: (date: string, time: string) => void;
 };
 
@@ -30,6 +31,7 @@ export function TimeColumn({
   previewSlots,
   othersHeatmap,
   othersTotal,
+  peekMode = false,
   onCellClick,
 }: TimeColumnProps) {
   return (
@@ -59,6 +61,7 @@ export function TimeColumn({
             isPreview={previewSlots.has(`${date}T${time}`)}
             othersCount={othersHeatmap[time] ?? 0}
             othersTotal={othersTotal}
+            peekMode={peekMode}
             onClick={() => onCellClick(date, time)}
           />
         ))}

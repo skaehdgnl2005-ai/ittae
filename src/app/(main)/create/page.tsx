@@ -1,55 +1,77 @@
 import { createServerClient } from "@/lib/supabase/server";
-import { mapUser } from "@/lib/mappers";
-import { CreateMeetingForm } from "@/components/create/CreateMeetingForm";
-import type { User } from "@/types";
+import { mapUser, mapGroup } from "@/lib/mappers";
+import { GroupsView } from "@/components/groups/GroupsView";
+import type { Group, User } from "@/types";
+import type { Database } from "@/types/supabase";
 
-export default async function CreatePage() {
+type GroupRow = Database["public"]["Tables"]["groups"]["Row"];
+type GroupMemberRow = { group_id: string; user_id: string };
+
+function emptyResult<T>(): { data: T[] | null } {
+  return { data: null };
+}
+
+export default async function GroupsPage() {
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let friends: User[] = [];
-
-  if (user) {
-    // 수락된 친구 id 수집 — RLS만 의존하지 않고 user.id로 명시 필터.
-    const [{ data: sent }, { data: received }] = await Promise.all([
-      supabase
-        .from("friendships")
-        .select("receiver_id")
-        .eq("requester_id", user.id)
-        .eq("status", "accepted"),
-      supabase
-        .from("friendships")
-        .select("requester_id")
-        .eq("receiver_id", user.id)
-        .eq("status", "accepted"),
-    ]);
-
-    const friendIds = [
-      ...(sent ?? []).map((f) => f.receiver_id),
-      ...(received ?? []).map((f) => f.requester_id),
-    ];
-
-    if (friendIds.length > 0) {
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("*")
-        .in("id", friendIds);
-      friends = (usersData ?? []).map(mapUser);
-    }
+  if (!user) {
+    return <GroupsView groups={[]} />;
   }
 
-  return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-dvh">
-      {/* 헤더 */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-5 pt-5 pb-4">
-        <h1 className="text-[22px] font-semibold text-gray-800 dark:text-gray-100">
-          모임 만들기
-        </h1>
-      </div>
+  const { data: myMemberships } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", user.id);
 
-      <CreateMeetingForm friends={friends} />
-    </div>
+  const groupIds = (myMemberships ?? []).map((m) => m.group_id);
+
+  if (groupIds.length === 0) {
+    return <GroupsView groups={[]} />;
+  }
+
+  const [groupRowsRes, allMembershipsRes] = await Promise.all([
+    supabase
+      .from("groups")
+      .select("*")
+      .in("id", groupIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("group_members")
+      .select("group_id, user_id")
+      .in("group_id", groupIds),
+  ]);
+
+  const groupRows = (groupRowsRes.data ?? []) as GroupRow[];
+  const allMemberships = (allMembershipsRes.data ?? []) as GroupMemberRow[];
+
+  const allMemberIds = [...new Set(allMemberships.map((m) => m.user_id))];
+
+  const { data: allUsers } =
+    allMemberIds.length > 0
+      ? await supabase.from("users").select("*").in("id", allMemberIds)
+      : emptyResult<Database["public"]["Tables"]["users"]["Row"]>();
+
+  const userMap = Object.fromEntries(
+    (allUsers ?? []).map((u) => [u.id, mapUser(u)] as const)
+  ) as Record<string, User>;
+
+  const membersByGroup = allMemberships.reduce<Record<string, User[]>>(
+    (acc, m) => {
+      if (!acc[m.group_id]) acc[m.group_id] = [];
+      const member = userMap[m.user_id];
+      if (member) acc[m.group_id].push(member);
+      return acc;
+    },
+    {}
   );
+
+  const groups: Group[] = groupRows.map((row) => ({
+    ...mapGroup(row),
+    members: membersByGroup[row.id] ?? [],
+  }));
+
+  return <GroupsView groups={groups} />;
 }

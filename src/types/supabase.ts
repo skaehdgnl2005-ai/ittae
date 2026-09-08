@@ -82,6 +82,8 @@ export type Database = {
           host_id: string;
           status: "voting" | "confirmed" | "completed";
           confirmed_date: string | null;
+          confirmed_start_time: string | null;
+          confirmed_end_time: string | null;
           place_id: string | null;
           created_at: string;
           invite_code: string | null;
@@ -92,6 +94,8 @@ export type Database = {
           host_id: string;
           status?: "voting" | "confirmed" | "completed";
           confirmed_date?: string | null;
+          confirmed_start_time?: string | null;
+          confirmed_end_time?: string | null;
           place_id?: string | null;
           created_at?: string;
           invite_code?: string | null;
@@ -102,6 +106,8 @@ export type Database = {
           host_id?: string;
           status?: "voting" | "confirmed" | "completed";
           confirmed_date?: string | null;
+          confirmed_start_time?: string | null;
+          confirmed_end_time?: string | null;
           place_id?: string | null;
           created_at?: string;
           invite_code?: string | null;
@@ -272,6 +278,39 @@ export type Database = {
           place_id?: string | null;
           photos?: string[];
           note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      time_slots: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string | null;
+          guest_id: string | null;
+          date: string;
+          start_time: string;
+          end_time: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id?: string | null;
+          guest_id?: string | null;
+          date: string;
+          start_time: string;
+          end_time: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          user_id?: string | null;
+          guest_id?: string | null;
+          date?: string;
+          start_time?: string;
+          end_time?: string;
           created_at?: string;
         };
         Relationships: [];

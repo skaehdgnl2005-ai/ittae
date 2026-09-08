@@ -166,12 +166,10 @@ export function useDragSelect({
   }, []);
 
   const handleNativeTouchMove = useCallback((e: TouchEvent) => {
-    // pending(꾹 누르는 대기 시간)에도 preventDefault — 컨테이너가 touch-action:none이지만
-    // 사용자 환경에 따라 native scroll이 끼어드는 케이스를 막는 안전망.
-    if (
-      (modeRef.current === "pending" || modeRef.current === "dragging") &&
-      e.cancelable
-    ) {
+    // dragging 모드(=hold 발화 후)에만 native scroll을 차단한다.
+    // pending(꾹 누르는 대기 시간) 중에는 사용자가 위/아래 스와이프로 페이지를
+    // 자연스럽게 스크롤할 수 있어야 하므로 preventDefault를 호출하지 않는다.
+    if (modeRef.current === "dragging" && e.cancelable) {
       e.preventDefault();
     }
   }, []);

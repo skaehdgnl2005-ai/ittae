@@ -1,8 +1,47 @@
 import { signInWithGoogle, signInWithKakao } from "./actions";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const error = typeof params.error === "string" ? params.error : undefined;
+  const reason = typeof params.reason === "string" ? params.reason : undefined;
+  const hasOAuthLeak =
+    typeof params.code === "string" ||
+    typeof params.access_token === "string" ||
+    typeof params.error_description === "string";
+
+  if (Object.keys(params).length > 0) {
+    console.warn("[login] arrived with query params:", params);
+  }
+
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 py-12">
+      {hasOAuthLeak ? (
+        <div className="w-full max-w-sm mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-900 px-4 py-3">
+          <p className="text-[13px] text-amber-800 dark:text-amber-200 font-medium">
+            OAuth 콜백이 잘못된 경로로 도착했어요
+          </p>
+          <p className="mt-1 text-[12px] text-amber-700 dark:text-amber-300 break-all">
+            URL에 {typeof params.code === "string" ? "code" : "access_token"}{" "}
+            파라미터가 붙은 채 /login에 도달했습니다 → Supabase Site URL이
+            잘못 설정됐거나 Redirect URL allow-list에 /auth/callback이 빠진 상태
+          </p>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="w-full max-w-sm mb-6 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900 px-4 py-3">
+          <p className="text-[13px] text-red-700 dark:text-red-300 font-medium">
+            로그인에 실패했어요
+          </p>
+          <p className="mt-1 text-[12px] text-red-600 dark:text-red-400 break-all">
+            {error}
+            {reason ? ` · ${reason}` : ""}
+          </p>
+        </div>
+      ) : null}
       {/* 앱 아이덴티티 */}
       <div className="text-center mb-14">
         <h1 className="font-serif text-[56px] leading-none text-gray-900 dark:text-gray-50 mb-4">

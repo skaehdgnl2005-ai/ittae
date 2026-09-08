@@ -16,9 +16,7 @@ export const getGroupByInviteCode = cache(
     if (trimmed.length === 0) return null;
 
     const admin = createAdminClient();
-    // confirmed_* 컬럼이 generated types에 누락돼 있어 (any) 캐스팅.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (admin as any)
+    const { data } = await admin
       .from("groups")
       .select(
         "id, name, status, confirmed_date, confirmed_start_time, confirmed_end_time"
@@ -26,6 +24,6 @@ export const getGroupByInviteCode = cache(
       .eq("invite_code", trimmed)
       .maybeSingle();
 
-    return (data as GroupByInviteCode | null) ?? null;
+    return data ?? null;
   }
 );

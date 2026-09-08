@@ -8,8 +8,10 @@ type ConfirmActionBarProps = {
   pickedSlot: BestTimeResult | null;
   onCancel: () => void;
   onConfirm: () => Promise<void>;
-  /** true면 하단 BottomNav 위(bottom-[83px])에 띄움. 기본 true. */
+  /** true면 하단 BottomNav 위(bottom-[83px])에 띄움. 기본 true. inline=true면 무시. */
   withBottomNav?: boolean;
+  /** flex column 페이지 안에서 자연 흐름으로 배치할 때 true. fixed 포지셔닝 제거. */
+  inline?: boolean;
 };
 
 function formatDateShort(dateStr: string): string {
@@ -23,6 +25,7 @@ export function ConfirmActionBar({
   onCancel,
   onConfirm,
   withBottomNav = true,
+  inline = false,
 }: ConfirmActionBarProps) {
   const [confirming, setConfirming] = useState(false);
 
@@ -43,8 +46,13 @@ export function ConfirmActionBar({
   return (
     <div
       className={cn(
-        "fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] px-5 py-3 bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800",
-        withBottomNav ? "bottom-[83px]" : "bottom-0"
+        "px-5 py-3 bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800",
+        inline
+          ? "w-full"
+          : cn(
+              "fixed left-1/2 -translate-x-1/2 w-full max-w-[430px]",
+              withBottomNav ? "bottom-[83px]" : "bottom-0"
+            )
       )}
     >
       <div className="mb-2 px-1">

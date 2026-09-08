@@ -127,7 +127,9 @@ export function DayEventList({ date, schedules, groups, onSelectSchedule }: DayE
                   {schedule.source === "google" && <GoogleSourceBadge />}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {formatTime(schedule.startTime)} — {formatTime(schedule.endTime)}
+                  {schedule.startTime && schedule.endTime
+                    ? `${formatTime(schedule.startTime)} — ${formatTime(schedule.endTime)}`
+                    : "종일"}
                 </p>
                 {relatedGroup && (
                   <div className="mt-2">

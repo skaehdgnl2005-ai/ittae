@@ -13,6 +13,8 @@ type TimeSlotCellProps = {
   othersCount: number;
   /** 다른 사람 총 수 (본인 제외 = 멤버 - 1) */
   othersTotal: number;
+  /** "참고 모드" — 클릭이 투표 토글이 아닌 sheet 오픈 트리거. */
+  peekMode?: boolean;
   onClick: () => void;
 };
 
@@ -41,8 +43,25 @@ export function TimeSlotCell({
   isPreview,
   othersCount,
   othersTotal,
+  peekMode = false,
   onClick,
 }: TimeSlotCellProps) {
+  const baseClass = getOthersHeatmapClass(othersCount, othersTotal);
+
+  // peek 모드: 본인 선택/드래그/disabled 분기 모두 무시하고 단일 버튼으로 sheet 오픈만 한다.
+  if (peekMode) {
+    return (
+      <button
+        onClick={onClick}
+        aria-label={`${time}, 누가 가능한지 보기 (${othersCount}/${othersTotal}명)`}
+        className={cn(
+          "h-8 w-full border-b border-gray-100 dark:border-gray-800 cursor-help",
+          baseClass
+        )}
+      />
+    );
+  }
+
   // 본인이 그 날짜를 "available"로 안 했을 때(disabled)에도 다른 사람 색은 그대로 보여야 한다.
   // When2meet 패리티: 그룹 가용성은 본인 입력 여부와 무관하게 항상 표시.
   if (disabled) {
@@ -51,15 +70,13 @@ export function TimeSlotCell({
         aria-label={`${time}, 다른 사람 ${othersCount}/${othersTotal}명 가능 (본인 가용 시간으로 미표시)`}
         className={cn(
           "h-8 w-full border-b border-gray-100 dark:border-gray-800 opacity-60",
-          getOthersHeatmapClass(othersCount, othersTotal)
+          baseClass
         )}
       />
     );
   }
 
   // 본인 selection은 ring(테두리)만 두르고 배경은 다른 사람 히트맵을 그대로 노출 → 둘 다 동시에 보이게.
-  const baseClass = getOthersHeatmapClass(othersCount, othersTotal);
-
   return (
     <button
       onClick={onClick}

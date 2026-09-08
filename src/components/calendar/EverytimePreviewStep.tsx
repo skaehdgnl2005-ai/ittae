@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   DAYS_OF_WEEK,
@@ -23,8 +22,6 @@ type Props = {
   error: string | null;
   onUpdate: (index: number, patch: Partial<ParsedClass>) => void;
   onToggle: (index: number) => void;
-  onImport: () => void;
-  onCancel: () => void;
 };
 
 export function EverytimePreviewStep({
@@ -34,13 +31,9 @@ export function EverytimePreviewStep({
   error,
   onUpdate,
   onToggle,
-  onImport,
-  onCancel,
 }: Props) {
-  const checkedCount = items.filter((i) => i.checked).length;
-
   return (
-    <>
+    <div className="space-y-4">
       {hasExistingEverytime && (
         <div className="px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950 text-xs text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
           기존에 가져온 에브리타임 일정 {existingCount}개가 교체됩니다.
@@ -109,15 +102,6 @@ export function EverytimePreviewStep({
       </div>
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-      <div className="flex flex-col gap-2 pt-2">
-        <Button variant="primary" onClick={onImport} disabled={checkedCount === 0}>
-          {checkedCount}개 추가
-        </Button>
-        <Button variant="secondary" onClick={onCancel}>
-          취소
-        </Button>
-      </div>
-    </>
+    </div>
   );
 }

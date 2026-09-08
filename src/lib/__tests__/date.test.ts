@@ -60,4 +60,7 @@ describe("formatTime", () => {
   it("오후 시간을 변환한다", () => {
     expect(formatTime("14:00")).toBe("오후 2:00");
   });
+  it("빈 문자열은 빈 문자열을 반환한다 (확정 그룹 일정처럼 시간 미정인 케이스)", () => {
+    expect(formatTime("")).toBe("");
+  });
 });

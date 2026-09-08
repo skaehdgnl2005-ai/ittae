@@ -7,33 +7,28 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/Button";
 import {
   SEMESTER_PRESETS,
   getDefaultSemesterPreset,
   type SemesterPreset,
 } from "@/lib/everytime/constants";
-import {
-  DAYS_OF_WEEK,
-  type ParsedClass,
-} from "@/lib/everytime/types";
+import { type ParsedClass } from "@/lib/everytime/types";
 import { EverytimeUploadStep } from "@/components/calendar/EverytimeUploadStep";
 import {
   EverytimePreviewStep,
   type PreviewItem,
 } from "@/components/calendar/EverytimePreviewStep";
-
-type Step = "upload" | "analyzing" | "preview" | "saving";
-
-const MAX_BYTES = 5 * 1024 * 1024;
-const TIME_RE = /^\d{2}:\d{2}$/;
-
-function flagOf(c: ParsedClass): PreviewItem["flag"] {
-  if (!c.title.trim()) return "missing_title";
-  if (!DAYS_OF_WEEK.includes(c.dayOfWeek)) return "invalid_day";
-  if (!TIME_RE.test(c.startTime) || !TIME_RE.test(c.endTime)) return "invalid_time";
-  if (c.startTime >= c.endTime) return "end_before_start";
-  return null;
-}
+import { EverytimeProgressStep } from "@/components/calendar/EverytimeProgressStep";
+import {
+  flagOf,
+  MAX_BYTES,
+  type Step,
+} from "@/components/calendar/everytime-import-utils";
+import {
+  parseTimetableImage,
+  importEverytimeClasses,
+} from "@/components/calendar/everytime-import-api";
 
 type Props = {
   open: boolean;
@@ -73,7 +68,6 @@ export function EverytimeImportSheet({ open, onClose, hasExistingEverytime, exis
 
   async function handleFileSelected(file: File) {
     setError(null);
-
     if (!["image/jpeg", "image/png"].includes(file.type)) {
       setError("jpg/png 이미지만 지원해요");
       return;
@@ -83,41 +77,33 @@ export function EverytimeImportSheet({ open, onClose, hasExistingEverytime, exis
       return;
     }
 
+    const range = resolveSemesterRange();
+    if (!range) {
+      setError("학기 날짜를 먼저 선택해 주세요");
+      return;
+    }
+    if (range.start > range.end) {
+      setError("학기 종료일이 시작일보다 빨라요");
+      return;
+    }
+
     setStep("analyzing");
     const ac = new AbortController();
     abortRef.current = ac;
 
-    try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const res = await fetch("/api/everytime/parse", {
-        method: "POST",
-        body: fd,
-        signal: ac.signal,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "시간표를 인식할 수 없었어요");
-        setStep("upload");
-        return;
-      }
-
-      const { data } = (await res.json()) as { data: { classes: ParsedClass[] } };
-      const previewItems: PreviewItem[] = data.classes.map((c) => {
+    const result = await parseTimetableImage(file, ac.signal);
+    if (!result.ok) {
+      if (!result.aborted) setError(result.error);
+      setStep("upload");
+      return;
+    }
+    setItems(
+      result.classes.map((c) => {
         const flag = flagOf(c);
         return { ...c, checked: flag === null, flag };
-      });
-      setItems(previewItems);
-      setStep("preview");
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        setStep("upload");
-        return;
-      }
-      setError("네트워크 오류가 발생했어요");
-      setStep("upload");
-    }
+      }),
+    );
+    setStep("preview");
   }
 
   function updateItem(index: number, patch: Partial<ParsedClass>) {
@@ -168,51 +154,34 @@ export function EverytimeImportSheet({ open, onClose, hasExistingEverytime, exis
     }
 
     setStep("saving");
-    try {
-      const res = await fetch("/api/everytime/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          classes: selected,
-          semesterStart: range.start,
-          semesterEnd: range.end,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "저장에 실패했어요");
-        setStep("preview");
-        return;
-      }
-
-      const { data } = (await res.json()) as {
-        data: { insertedCount: number; classCount: number };
-      };
-      onClose();
-      router.refresh();
-      // 디자인 시스템에 토스트 도입 전까지 alert로 임시 처리
-      alert(`${data.classCount}개 수업이 학기 동안 추가됐어요`);
-    } catch {
-      setError("네트워크 오류가 발생했어요");
+    const result = await importEverytimeClasses(selected, range.start, range.end);
+    if (!result.ok) {
+      setError(result.error);
       setStep("preview");
+      return;
     }
+    onClose();
+    router.refresh();
+    // 디자인 시스템에 토스트 도입 전까지 alert로 임시 처리
+    alert(`${result.classCount}개 수업이 학기 동안 추가됐어요`);
   }
+
+  const checkedCount = items.filter((i) => i.checked).length;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl max-h-[90dvh] overflow-y-auto p-0"
+        className="rounded-t-2xl max-h-[90dvh] p-0 flex flex-col"
         showCloseButton={false}
       >
-        <SheetHeader className="border-b border-gray-100 dark:border-gray-700">
+        <SheetHeader className="flex-none border-b border-gray-100 dark:border-gray-700">
           <SheetTitle className="text-base font-semibold text-gray-800 dark:text-gray-100">
             에브리타임 시간표 가져오기
           </SheetTitle>
         </SheetHeader>
 
-        <div className="p-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           {step === "upload" && (
             <EverytimeUploadStep
               presetId={presetId}
@@ -227,17 +196,10 @@ export function EverytimeImportSheet({ open, onClose, hasExistingEverytime, exis
           )}
 
           {step === "analyzing" && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="h-8 w-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-              <p className="text-sm text-gray-700 dark:text-gray-200">시간표 읽는 중…</p>
-              <button
-                type="button"
-                onClick={() => abortRef.current?.abort()}
-                className="text-xs text-gray-400 underline min-h-11 px-2"
-              >
-                취소
-              </button>
-            </div>
+            <EverytimeProgressStep
+              label="시간표 읽는 중…"
+              onCancel={() => abortRef.current?.abort()}
+            />
           )}
 
           {step === "preview" && (
@@ -248,18 +210,22 @@ export function EverytimeImportSheet({ open, onClose, hasExistingEverytime, exis
               error={error}
               onUpdate={updateItem}
               onToggle={toggleItem}
-              onImport={handleImport}
-              onCancel={onClose}
             />
           )}
 
-          {step === "saving" && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="h-8 w-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
-              <p className="text-sm text-gray-700 dark:text-gray-200">저장 중…</p>
-            </div>
-          )}
+          {step === "saving" && <EverytimeProgressStep label="저장 중…" />}
         </div>
+
+        {step === "preview" && (
+          <div className="flex-none border-t border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2 bg-white dark:bg-gray-900">
+            <Button variant="primary" onClick={handleImport} disabled={checkedCount === 0}>
+              {checkedCount}개 추가
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              취소
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

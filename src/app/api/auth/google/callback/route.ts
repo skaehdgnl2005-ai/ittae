@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const cookieState = req.cookies.get("google_oauth_state")?.value;
 
   if (!code || !state || !cookieState || state !== cookieState) {
-    return NextResponse.redirect(new URL("/profile?google=invalid", req.url));
+    return NextResponse.redirect(new URL("/home?google=invalid", req.url));
   }
 
   const supabase = await createServerClient();
@@ -28,12 +28,12 @@ export async function GET(req: NextRequest) {
   try {
     tokens = await exchangeCodeForTokens(code);
   } catch {
-    return NextResponse.redirect(new URL("/profile?google=error", req.url));
+    return NextResponse.redirect(new URL("/home?google=error", req.url));
   }
 
   if (!tokens.refresh_token) {
     return NextResponse.redirect(
-      new URL("/profile?google=norefresh", req.url)
+      new URL("/home?google=norefresh", req.url)
     );
   }
 
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     .eq("id", user.id);
 
   if (updateErr) {
-    return NextResponse.redirect(new URL("/profile?google=db_error", req.url));
+    return NextResponse.redirect(new URL("/home?google=db_error", req.url));
   }
 
   await syncUserGoogleCalendar(user.id);

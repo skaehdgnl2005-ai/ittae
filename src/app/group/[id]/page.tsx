@@ -63,9 +63,6 @@ export default async function GroupDetailPage({
   const guests: Guest[] = (guestRows ?? []).map(mapGuest);
 
   // Stage 2: 멤버 프로필(admin) + (세션 있으면) votes + time_slots(일반 RLS) 병렬.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const emptyResult: any = { data: [] };
-
   const [
     { data: usersData },
     { data: votesData },
@@ -73,17 +70,13 @@ export default async function GroupDetailPage({
   ] = await Promise.all([
     memberIds.length > 0
       ? adminClient.from("users").select("*").in("id", memberIds)
-      : Promise.resolve(emptyResult),
+      : Promise.resolve({ data: [] }),
     sessionRow
       ? supabase.from("votes").select("*").eq("session_id", sessionRow.id)
-      : Promise.resolve(emptyResult),
+      : Promise.resolve({ data: [] }),
     sessionRow
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any)
-          .from("time_slots")
-          .select("*")
-          .eq("session_id", sessionRow.id)
-      : Promise.resolve(emptyResult),
+      ? supabase.from("time_slots").select("*").eq("session_id", sessionRow.id)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const members: User[] = (usersData ?? []).map(mapUser);
@@ -103,8 +96,7 @@ export default async function GroupDetailPage({
 
   const voteSession: VoteSession = mapVoteSession(sessionRow);
   const initialVotes: Vote[] = (votesData ?? []).map(mapVote);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const initialTimeSlots: TimeSlot[] = ((timeSlotsData ?? []) as any[]).map(mapTimeSlot);
+  const initialTimeSlots: TimeSlot[] = (timeSlotsData ?? []).map(mapTimeSlot);
 
   return (
     <GroupDetailClient

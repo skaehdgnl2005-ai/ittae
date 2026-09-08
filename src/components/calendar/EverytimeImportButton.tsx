@@ -11,8 +11,8 @@ type Props = {
 export function EverytimeImportButton({ hasExistingEverytime, existingCount }: Props) {
   const [open, setOpen] = useState(false);
   const label = hasExistingEverytime
-    ? "에브리타임 시간표 다시 가져오기"
-    : "에브리타임 시간표 가져오기";
+    ? "에브리타임 갱신"
+    : "에브리타임 가져오기";
 
   return (
     <>

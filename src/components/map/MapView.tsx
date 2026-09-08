@@ -13,8 +13,6 @@ interface KakaoMapInstance {
   setCenter(latlng: KakaoLatLng): void;
   panTo(latlng: KakaoLatLng): void;
   setLevel(level: number): void;
-  setMapTypeId(mapTypeId: number): void;
-  removeOverlayMapTypeId(mapTypeId: number): void;
 }
 
 interface KakaoMarkerInstance {
@@ -49,15 +47,6 @@ declare const window: Window & {
         fillColor: string;
         fillOpacity: number;
       }) => KakaoCircleInstance;
-      MapTypeId: {
-        ROADMAP: number;
-        SKYVIEW: number;
-        HYBRID: number;
-        TRAFFIC: number;
-        TERRAIN: number;
-        BICYCLE: number;
-        USE_DISTRICT: number;
-      };
     };
   };
 };
@@ -72,11 +61,11 @@ type MapViewProps = {
 const DEFAULT_CENTER = { lat: 37.566535, lng: 126.9779692 };
 
 const RADIUS_TO_LEVEL: Record<number, number> = {
-  500: 3,
-  1000: 4,
-  2000: 5,
-  3000: 6,
-  5000: 7,
+  500: 4,
+  1000: 5,
+  2000: 6,
+  3000: 7,
+  5000: 8,
 };
 
 export function MapView({ places, selectedPlaceId, center, radius }: MapViewProps) {
@@ -96,28 +85,8 @@ export function MapView({ places, selectedPlaceId, center, radius }: MapViewProp
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = new window.kakao.maps.Map(mapRef.current, {
         center: centerLatLng,
-        level: RADIUS_TO_LEVEL[radius ?? 1000] ?? 4,
+        level: RADIUS_TO_LEVEL[radius ?? 1000] ?? 5,
       });
-      // 기본 도로지도만 사용 — 행정구역/지적도/스카이뷰 등 오버레이 강제 해제
-      const types = window.kakao.maps.MapTypeId;
-      if (types) {
-        mapInstanceRef.current.setMapTypeId(types.ROADMAP);
-        [
-          types.HYBRID,
-          types.TRAFFIC,
-          types.TERRAIN,
-          types.BICYCLE,
-          types.USE_DISTRICT,
-        ].forEach((id) => {
-          if (id !== undefined) {
-            try {
-              mapInstanceRef.current?.removeOverlayMapTypeId(id);
-            } catch {
-              // 켜져있지 않으면 무시
-            }
-          }
-        });
-      }
     }
 
     const map = mapInstanceRef.current;
@@ -139,7 +108,7 @@ export function MapView({ places, selectedPlaceId, center, radius }: MapViewProp
         fillOpacity: 0.25,
       });
       circleRef.current.setMap(map);
-      map.setLevel(RADIUS_TO_LEVEL[radius] ?? 4);
+      map.setLevel(RADIUS_TO_LEVEL[radius] ?? 5);
     }
 
     // 마커 업데이트
